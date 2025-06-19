@@ -8,6 +8,10 @@ class DashboardController {
 
     async init() {
         try {
+            // Check and create sample data if needed for testing
+            const sampleDataManager = new SampleDataManager();
+            await sampleDataManager.checkAndCreateSampleData();
+            
             await this.loadData();
             this.renderDashboard();
             this.setupEventListeners();

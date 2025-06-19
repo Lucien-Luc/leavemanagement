@@ -196,6 +196,13 @@ class Utils {
         return count;
     }
 
+    // Calculate leave days excluding weekends
+    static calculateLeaveDays(startDate, endDate) {
+        const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
+        const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
+        return this.getBusinessDays(start, end);
+    }
+
     // Capitalize first letter
     static capitalize(str) {
         return str.charAt(0).toUpperCase() + str.slice(1);

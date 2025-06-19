@@ -60,9 +60,9 @@ class AuthService {
                 manager: userData.manager || '',
                 startDate: userData.startDate || new Date().toISOString().split('T')[0],
                 leaveBalances: {
-                    vacation: 20,
-                    sick: 10,
-                    personal: 5,
+                    vacation: 25,
+                    sick: 12,
+                    personal: 8,
                     maternity: 90,
                     paternity: 15
                 },

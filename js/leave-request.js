@@ -7,6 +7,9 @@ class LeaveRequestController {
 
     async init() {
         try {
+            this.currentFilter = 'all';
+            this.allRequests = [];
+            
             // Check if we're editing an existing request
             this.editingRequestId = localStorage.getItem('editingLeaveRequest');
             if (this.editingRequestId) {
@@ -167,8 +170,8 @@ class LeaveRequestController {
                 return;
             }
 
-            const days = Utils.daysBetween(startDate, endDate);
-            daysDisplay.innerHTML = `<strong>${days} days</strong>`;
+            const days = Utils.calculateLeaveDays(startDate, endDate);
+            daysDisplay.innerHTML = `<strong>${days} business days</strong> <small>(weekends excluded)</small>`;
         }
     }
 
@@ -331,7 +334,7 @@ class LeaveRequestController {
             throw new Error(dateValidation);
         }
 
-        const days = Utils.daysBetween(startDate, endDate);
+        const days = Utils.calculateLeaveDays(startDate, endDate);
         const user = authService.getCurrentUser();
         const availableBalance = user.leaveBalances?.[leaveType] || 0;
 
@@ -427,7 +430,8 @@ class LeaveRequestController {
                 createdAt: doc.data().createdAt?.toDate()
             }));
 
-            this.renderLeaveHistory(requests);
+            this.allRequests = requests;
+            this.renderLeaveHistory(this.getFilteredRequests());
 
         } catch (error) {
             console.error('Error loading leave history:', error);
@@ -443,6 +447,13 @@ class LeaveRequestController {
                 <div class="card">
                     <div class="card-header">
                         <h4 class="card-title">Leave Request History</h4>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                            <button class="btn btn-sm btn-outline" onclick="leaveRequestController.filterByStatus('all')" id="filter-all">All</button>
+                            <button class="btn btn-sm btn-warning" onclick="leaveRequestController.filterByStatus('pending')" id="filter-pending">Pending</button>
+                            <button class="btn btn-sm btn-success" onclick="leaveRequestController.filterByStatus('approved')" id="filter-approved">Approved</button>
+                            <button class="btn btn-sm btn-danger" onclick="leaveRequestController.filterByStatus('rejected')" id="filter-rejected">Rejected</button>
+                            <button class="btn btn-sm btn-secondary" onclick="leaveRequestController.filterByStatus('cancelled')" id="filter-cancelled">Cancelled</button>
+                        </div>
                     </div>
                     <div class="text-center" style="padding: 2rem;">
                         <i class="fas fa-history" style="font-size: 3rem; color: var(--medium-grey); margin-bottom: 1rem;"></i>
@@ -457,7 +468,7 @@ class LeaveRequestController {
             <tr>
                 <td>${Utils.capitalize(request.leaveType)}</td>
                 <td>${Utils.formatDate(request.startDate)} - ${Utils.formatDate(request.endDate)}</td>
-                <td>${request.days} days</td>
+                <td>${request.days} business days</td>
                 <td><span class="badge ${Utils.getStatusBadgeClass(request.status)}">${Utils.capitalize(request.status)}</span></td>
                 <td>${Utils.formatDate(request.createdAt, true)}</td>
                 <td>
@@ -467,6 +478,11 @@ class LeaveRequestController {
                         </button>
                         <button class="btn btn-sm btn-danger" onclick="leaveRequestController.cancelRequest('${request.id}')">
                             <i class="fas fa-times"></i>
+                        </button>
+                    ` : ''}
+                    ${request.status === 'rejected' && request.rejectionReason ? `
+                        <button class="btn btn-sm btn-warning" title="${request.rejectionReason}">
+                            <i class="fas fa-info-circle"></i>
                         </button>
                     ` : ''}
                     ${request.attachments && request.attachments.length > 0 ? `
@@ -482,6 +498,13 @@ class LeaveRequestController {
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title">Leave Request History</h4>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
+                        <button class="btn btn-sm ${this.currentFilter === 'all' ? 'btn-primary' : 'btn-outline'}" onclick="leaveRequestController.filterByStatus('all')" id="filter-all">All (${this.allRequests.length})</button>
+                        <button class="btn btn-sm ${this.currentFilter === 'pending' ? 'btn-primary' : 'btn-outline'}" onclick="leaveRequestController.filterByStatus('pending')" id="filter-pending">Pending (${this.allRequests.filter(r => r.status === 'pending').length})</button>
+                        <button class="btn btn-sm ${this.currentFilter === 'approved' ? 'btn-success' : 'btn-outline'}" onclick="leaveRequestController.filterByStatus('approved')" id="filter-approved">Approved (${this.allRequests.filter(r => r.status === 'approved').length})</button>
+                        <button class="btn btn-sm ${this.currentFilter === 'rejected' ? 'btn-danger' : 'btn-outline'}" onclick="leaveRequestController.filterByStatus('rejected')" id="filter-rejected">Rejected (${this.allRequests.filter(r => r.status === 'rejected').length})</button>
+                        <button class="btn btn-sm ${this.currentFilter === 'cancelled' ? 'btn-secondary' : 'btn-outline'}" onclick="leaveRequestController.filterByStatus('cancelled')" id="filter-cancelled">Cancelled (${this.allRequests.filter(r => r.status === 'cancelled').length})</button>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table">
@@ -532,6 +555,30 @@ class LeaveRequestController {
     viewAttachments(requestId) {
         // This could open a modal or navigate to a detailed view
         Utils.showToast('View attachments feature - to be implemented', 'info');
+    }
+
+    filterByStatus(status) {
+        this.currentFilter = status;
+        this.renderLeaveHistory(this.getFilteredRequests());
+        
+        // Update active filter button
+        document.querySelectorAll('[id^="filter-"]').forEach(btn => {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline');
+        });
+        
+        const activeBtn = document.getElementById(`filter-${status}`);
+        if (activeBtn) {
+            activeBtn.classList.remove('btn-outline');
+            activeBtn.classList.add('btn-primary');
+        }
+    }
+
+    getFilteredRequests() {
+        if (this.currentFilter === 'all') {
+            return this.allRequests;
+        }
+        return this.allRequests.filter(request => request.status === this.currentFilter);
     }
 }
 
