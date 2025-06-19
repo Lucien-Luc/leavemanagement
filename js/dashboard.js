@@ -42,9 +42,9 @@ class DashboardController {
             // Load leave requests directly from Firestore
             try {
                 console.log('Querying leave requests for user ID:', user.id);
+                // Try without orderBy first to avoid index issues
                 const leaveRequestsSnapshot = await db.collection('leave_requests')
                     .where('userId', '==', user.id)
-                    .orderBy('createdAt', 'desc')
                     .get();
 
                 console.log('Found documents:', leaveRequestsSnapshot.docs.length);
@@ -148,11 +148,26 @@ class DashboardController {
     }
 
     renderDashboard() {
+        this.updateWelcomeMessage();
         this.renderStats();
         this.renderLeaveBalances();
         this.renderRecentRequests();
         this.renderRejectedRequests();
         this.renderUpcomingLeaves();
+    }
+
+    updateWelcomeMessage() {
+        const user = authService.getCurrentUser();
+        const welcomeElement = document.getElementById('welcome-message');
+        if (welcomeElement && user) {
+            const firstName = user.firstName || 'User';
+            const currentHour = new Date().getHours();
+            let greeting = 'Good morning';
+            if (currentHour >= 12 && currentHour < 17) greeting = 'Good afternoon';
+            else if (currentHour >= 17) greeting = 'Good evening';
+            
+            welcomeElement.textContent = `${greeting}, ${firstName}! Here's your leave management overview.`;
+        }
     }
 
     renderStats() {
@@ -203,24 +218,45 @@ class DashboardController {
         if (!balancesContainer) return;
 
         const balanceCards = Object.entries(this.leaveBalances).map(([type, balance]) => `
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title">${Utils.capitalize(type)} Leave</h4>
+            <div class="balance-card">
+                <div class="balance-header">
+                    <div class="balance-icon">
+                        <i class="fas ${this.getLeaveTypeIcon(type)}"></i>
                     </div>
-                    <div class="text-center">
-                        <div class="stat-value" style="color: ${Utils.getLeaveTypeColor(type)}">${balance}</div>
-                        <div class="stat-label">Days Remaining</div>
+                    <div class="balance-info">
+                        <h5>${Utils.capitalize(type)} Leave</h5>
+                        <span class="balance-days">${balance} days</span>
                     </div>
+                </div>
+                <div class="balance-progress">
+                    <div class="progress-bar" style="width: ${Math.min((balance / this.getMaxDays(type)) * 100, 100)}%; background-color: ${Utils.getLeaveTypeColor(type)};"></div>
                 </div>
             </div>
         `).join('');
 
-        balancesContainer.innerHTML = `
-            <div class="row">
-                ${balanceCards}
-            </div>
-        `;
+        balancesContainer.innerHTML = balanceCards;
+    }
+
+    getLeaveTypeIcon(type) {
+        const icons = {
+            vacation: 'fa-umbrella-beach',
+            sick: 'fa-stethoscope',
+            personal: 'fa-user',
+            maternity: 'fa-baby',
+            paternity: 'fa-baby'
+        };
+        return icons[type] || 'fa-calendar';
+    }
+
+    getMaxDays(type) {
+        const maxDays = {
+            vacation: 30,
+            sick: 15,
+            personal: 10,
+            maternity: 120,
+            paternity: 20
+        };
+        return maxDays[type] || 30;
     }
 
     renderRecentRequests() {
@@ -302,14 +338,9 @@ class DashboardController {
 
         if (rejectedRequests.length === 0) {
             rejectedContainer.innerHTML = `
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title">Recent Rejected Requests</h4>
-                    </div>
-                    <div class="text-center" style="padding: 2rem;">
-                        <i class="fas fa-times-circle" style="font-size: 3rem; color: var(--medium-grey); margin-bottom: 1rem;"></i>
-                        <p>No rejected requests</p>
-                    </div>
+                <div class="empty-state">
+                    <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success); margin-bottom: 0.5rem;"></i>
+                    <p style="margin: 0; color: var(--medium-grey); font-size: 0.9rem;">No rejected requests</p>
                 </div>
             `;
             return;
@@ -359,14 +390,9 @@ class DashboardController {
 
         if (upcomingLeaves.length === 0) {
             upcomingContainer.innerHTML = `
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title">Upcoming Approved Leaves</h4>
-                    </div>
-                    <div class="text-center" style="padding: 2rem;">
-                        <i class="fas fa-calendar" style="font-size: 3rem; color: var(--medium-grey); margin-bottom: 1rem;"></i>
-                        <p>No upcoming approved leaves</p>
-                    </div>
+                <div class="empty-state">
+                    <i class="fas fa-calendar-plus" style="font-size: 2rem; color: var(--primary-blue); margin-bottom: 0.5rem;"></i>
+                    <p style="margin: 0; color: var(--medium-grey); font-size: 0.9rem;">No upcoming leaves</p>
                 </div>
             `;
             return;

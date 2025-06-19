@@ -172,28 +172,93 @@ body {
     color: var(--white);
 }
 
+/* Balance Cards */
+.balance-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border-left: 4px solid var(--primary-blue);
+    transition: all 0.3s ease;
+}
+
+.balance-card:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.balance-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.balance-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+    font-size: 1rem;
+    color: var(--white);
+}
+
+.balance-info h5 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--dark-grey);
+}
+
+.balance-days {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--primary-blue);
+}
+
+.balance-progress {
+    background: #e9ecef;
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+}
+
 /* Cards */
 .card {
     background: var(--white);
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
-    padding-bottom: 1rem;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
     border-bottom: 1px solid var(--light-grey);
 }
 
 .card-title {
     color: var(--primary-blue);
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 600;
+    margin: 0;
 }
 
 /* Forms */
@@ -301,12 +366,69 @@ body {
     color: var(--medium-grey);
 }
 
-/* Dashboard Stats */
+/* Dashboard Layout */
+.dashboard-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    min-height: calc(100vh - 80px);
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+    border-radius: var(--border-radius);
+    color: var(--white);
+}
+
+.welcome-section h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.welcome-section p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+.quick-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.quick-actions .btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: var(--white);
+    backdrop-filter: blur(10px);
+}
+
+.quick-actions .btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+/* Stats Section */
+.stats-section {
+    margin-bottom: 2rem;
+}
+
+.stats-section h3 {
+    color: var(--primary-blue);
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
 }
 
 .stat-card {
@@ -316,31 +438,150 @@ body {
     box-shadow: var(--box-shadow);
     text-align: center;
     border-left: 4px solid var(--primary-blue);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: all 0.3s ease;
 }
 
 .stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(27, 123, 156, 0.15);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(27, 123, 156, 0.15);
 }
 
 .stat-icon {
-    font-size: 2.5rem;
+    font-size: 2rem;
     color: var(--primary-blue);
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .stat-value {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: bold;
     color: var(--primary-blue);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .stat-label {
     color: var(--medium-grey);
-    font-size: 0.875rem;
+    font-size: 0.8rem;
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.dashboard-left, .dashboard-right {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.balance-section, .activity-section {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 1.5rem;
+}
+
+.balance-section h3, .activity-section h3 {
+    margin: 0 0 1rem 0;
+    color: var(--primary-blue);
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-bottom: 2px solid var(--light-grey);
+    padding-bottom: 0.5rem;
+}
+
+.secondary-sections {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.upcoming-section, .rejected-section {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 1rem;
+}
+
+.upcoming-section h4, .rejected-section h4 {
+    margin: 0 0 1rem 0;
+    color: var(--primary-blue);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+/* Empty States */
+.empty-state {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--medium-grey);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .secondary-sections {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 1rem 0.5rem;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .quick-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .dashboard-header {
+        padding: 1rem;
+    }
+    
+    .welcome-section h1 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .balance-card {
+        padding: 0.75rem;
+    }
+    
+    .balance-icon {
+        width: 35px;
+        height: 35px;
+        font-size: 0.9rem;
+    }
 }
 
 .stat-label {
