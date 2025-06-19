@@ -203,23 +203,24 @@ class DashboardController {
         if (!balancesContainer) return;
 
         const balanceCards = Object.entries(this.leaveBalances).map(([type, balance]) => `
-            <div class="balance-card">
-                <div class="balance-header">
-                    <div class="balance-icon" style="color: ${Utils.getLeaveTypeColor(type)}">
-                        <i class="fas ${Utils.getLeaveTypeIcon(type)}"></i>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">${Utils.capitalize(type)} Leave</h4>
                     </div>
-                    <div class="balance-info">
-                        <div class="balance-type">${Utils.capitalize(type)} Leave</div>
-                        <div class="balance-value" style="color: ${Utils.getLeaveTypeColor(type)}">${balance} days</div>
+                    <div class="text-center">
+                        <div class="stat-value" style="color: ${Utils.getLeaveTypeColor(type)}">${balance}</div>
+                        <div class="stat-label">Days Remaining</div>
                     </div>
-                </div>
-                <div class="balance-bar">
-                    <div class="balance-progress" style="width: ${Math.min((balance / 30) * 100, 100)}%; background: ${Utils.getLeaveTypeColor(type)}"></div>
                 </div>
             </div>
         `).join('');
 
-        balancesContainer.innerHTML = balanceCards;
+        balancesContainer.innerHTML = `
+            <div class="row">
+                ${balanceCards}
+            </div>
+        `;
     }
 
     renderRecentRequests() {
