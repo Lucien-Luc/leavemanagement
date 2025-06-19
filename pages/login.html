@@ -6,7 +6,7 @@
             <p>Sign in to your account</p>
         </div>
         
-        <form id="login-form">
+        <form id="login-form" onsubmit="handleLoginSubmit(event)">
             <div class="form-group">
                 <label for="email" class="form-label">Email Address</label>
                 <input type="email" id="email" name="email" class="form-control" required>
@@ -24,8 +24,10 @@
         
         <div style="text-align: center;">
             <p>Don't have an account? 
-                <a href="#" id="register-link" style="color: var(--primary-blue);">Create Account</a>
+                <a href="#" id="register-link" onclick="handleRegisterClick(event)" style="color: var(--primary-blue);">Create Account</a>
             </p>
         </div>
+        
+
     </div>
 </div>

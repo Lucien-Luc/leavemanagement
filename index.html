@@ -66,5 +66,56 @@
     <script src="js/calendar.js"></script>
     <script src="js/profile.js"></script>
     <script src="js/app.js"></script>
+    
+    <script>
+        // Global event handlers for login/register pages
+        window.handleLoginSubmit = function(event) {
+            event.preventDefault();
+            console.log('Login form submitted');
+            
+            if (window.app && window.app.handleLogin) {
+                window.app.handleLogin(event);
+            } else {
+                console.log('App not ready, waiting...');
+                setTimeout(() => window.handleLoginSubmit(event), 500);
+            }
+        };
+        
+        window.handleRegisterSubmit = function(event) {
+            event.preventDefault();
+            console.log('Register form submitted');
+            
+            if (window.app && window.app.handleRegister) {
+                window.app.handleRegister(event);
+            } else {
+                console.log('App not ready, waiting...');
+                setTimeout(() => window.handleRegisterSubmit(event), 500);
+            }
+        };
+        
+        window.handleRegisterClick = function(event) {
+            event.preventDefault();
+            console.log('Register link clicked');
+            
+            if (window.app && window.app.navigateTo) {
+                window.app.navigateTo('register');
+            } else {
+                console.log('App not ready, waiting...');
+                setTimeout(() => window.handleRegisterClick(event), 500);
+            }
+        };
+        
+        window.handleLoginClick = function(event) {
+            event.preventDefault();
+            console.log('Login link clicked');
+            
+            if (window.app && window.app.navigateTo) {
+                window.app.navigateTo('login');
+            } else {
+                console.log('App not ready, waiting...');
+                setTimeout(() => window.handleLoginClick(event), 500);
+            }
+        };
+    </script>
 </body>
 </html>

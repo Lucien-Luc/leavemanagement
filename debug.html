@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - BPN Leave Management</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        .debug { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Debug Page</h1>
+    
+    <div class="debug">
+        <h3>Test Basic Button</h3>
+        <button onclick="alert('Basic button works!')">Test Alert</button>
+    </div>
+    
+    <div class="debug">
+        <h3>Test Firebase Loading</h3>
+        <button onclick="testFirebase()">Test Firebase</button>
+        <div id="firebase-status"></div>
+    </div>
+    
+    <div class="debug">
+        <h3>Simple Login Form</h3>
+        <form id="test-form" onsubmit="testForm(event)">
+            <input type="email" placeholder="Email" required>
+            <input type="password" placeholder="Password" required>
+            <button type="submit">Test Submit</button>
+        </form>
+    </div>
+    
+    <div class="debug">
+        <h3>Console Output</h3>
+        <div id="console-output" style="background: black; color: green; padding: 10px; font-family: monospace; height: 200px; overflow-y: scroll;"></div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="js/firebase-config.js"></script>
+
+    <script>
+        // Capture console logs
+        const consoleOutput = document.getElementById('console-output');
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        function addToConsole(message, type = 'log') {
+            const color = type === 'error' ? 'red' : 'green';
+            consoleOutput.innerHTML += `<div style="color: ${color};">[${type.toUpperCase()}] ${message}</div>`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+        
+        function testFirebase() {
+            console.log('Testing Firebase...');
+            const status = document.getElementById('firebase-status');
+            
+            if (typeof firebase === 'undefined') {
+                status.innerHTML = '<span style="color: red;">Firebase not loaded</span>';
+                console.error('Firebase not loaded');
+                return;
+            }
+            
+            if (window.db) {
+                status.innerHTML = '<span style="color: green;">Firebase DB available</span>';
+                console.log('Firebase DB is available');
+            } else {
+                status.innerHTML = '<span style="color: orange;">Firebase loading...</span>';
+                console.log('Firebase DB not yet available');
+                
+                setTimeout(() => {
+                    if (window.db) {
+                        status.innerHTML = '<span style="color: green;">Firebase DB now available</span>';
+                        console.log('Firebase DB is now available');
+                    } else {
+                        status.innerHTML = '<span style="color: red;">Firebase DB failed to load</span>';
+                        console.error('Firebase DB failed to load');
+                    }
+                }, 2000);
+            }
+        }
+        
+        function testForm(event) {
+            event.preventDefault();
+            console.log('Form submitted successfully!');
+            alert('Form submission works!');
+        }
+        
+        // Test on page load
+        window.addEventListener('load', () => {
+            console.log('Debug page loaded');
+            testFirebase();
+        });
+    </script>
+</body>
+</html>

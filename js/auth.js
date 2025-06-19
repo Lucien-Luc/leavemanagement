@@ -25,6 +25,8 @@ class AuthService {
 
     async register(userData) {
         try {
+            console.log('Starting registration process...', userData);
+            
             // Validate input
             if (!userData.email || !userData.password || !userData.firstName || !userData.lastName) {
                 throw new Error('All fields are required');
@@ -69,7 +71,9 @@ class AuthService {
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
+            console.log('Creating user document...');
             const docRef = await db.collection('users').add(newUser);
+            console.log('User created with ID:', docRef.id);
             
             // Remove password from user object for session
             const userForSession = { ...newUser, id: docRef.id };
@@ -80,6 +84,7 @@ class AuthService {
 
             return userForSession;
         } catch (error) {
+            console.error('Registration error:', error);
             throw new Error(error.message || 'Registration failed');
         }
     }

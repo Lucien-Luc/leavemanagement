@@ -8,16 +8,21 @@ class App {
 
     async init() {
         try {
+            console.log('App initialization starting...');
             // Show loading screen
             this.showLoading();
 
             // Wait for Firebase to initialize
+            console.log('Waiting for Firebase...');
             await this.waitForFirebase();
+            console.log('Firebase initialized');
 
             // Check authentication state
             if (authService.isLoggedIn()) {
+                console.log('User is logged in, loading authenticated app');
                 await this.loadAuthenticatedApp();
             } else {
+                console.log('User not logged in, loading login page');
                 await this.loadLoginPage();
             }
 
@@ -25,6 +30,7 @@ class App {
             this.setupEventListeners();
 
             this.initialized = true;
+            console.log('App initialization completed');
         } catch (error) {
             console.error('App initialization failed:', error);
             Utils.showToast('Application failed to initialize', 'error');
@@ -34,17 +40,30 @@ class App {
     }
 
     waitForFirebase() {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
+            let attempts = 0;
+            const maxAttempts = 50; // 5 seconds max wait
+            
             if (window.db) {
+                console.log('Firebase already available');
                 resolve();
-            } else {
-                const checkFirebase = setInterval(() => {
-                    if (window.db) {
-                        clearInterval(checkFirebase);
-                        resolve();
-                    }
-                }, 100);
+                return;
             }
+            
+            const checkFirebase = setInterval(() => {
+                attempts++;
+                console.log(`Checking Firebase availability... attempt ${attempts}`);
+                
+                if (window.db) {
+                    console.log('Firebase is now available');
+                    clearInterval(checkFirebase);
+                    resolve();
+                } else if (attempts >= maxAttempts) {
+                    console.error('Firebase failed to initialize within timeout');
+                    clearInterval(checkFirebase);
+                    reject(new Error('Firebase initialization timeout'));
+                }
+            }, 100);
         });
     }
 
@@ -146,6 +165,9 @@ class App {
         const mainContent = document.getElementById('main-content');
         const pageContent = await Utils.loadPage(page);
         mainContent.innerHTML = pageContent;
+        
+        // Small delay to ensure DOM is ready
+        await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     async initializePage(page) {
@@ -172,21 +194,30 @@ class App {
     }
 
     initializeLoginPage() {
+        console.log('Initializing login page...');
         const loginForm = document.getElementById('login-form');
         if (loginForm) {
+            console.log('Login form found, adding event listener');
             loginForm.addEventListener('submit', async (e) => {
+                console.log('Login form submitted');
                 e.preventDefault();
                 await this.handleLogin(e);
             });
+        } else {
+            console.error('Login form not found!');
         }
 
         // Register link
         const registerLink = document.getElementById('register-link');
         if (registerLink) {
+            console.log('Register link found, adding event listener');
             registerLink.addEventListener('click', (e) => {
+                console.log('Register link clicked');
                 e.preventDefault();
                 this.navigateTo('register');
             });
+        } else {
+            console.error('Register link not found!');
         }
     }
 
@@ -210,20 +241,26 @@ class App {
     }
 
     async handleLogin(event) {
+        console.log('handleLogin called');
         const formData = new FormData(event.target);
         const email = formData.get('email');
         const password = formData.get('password');
         const submitBtn = event.target.querySelector('button[type="submit"]');
 
+        console.log('Login attempt:', { email, password: password ? '***' : 'empty' });
+
         try {
             const originalText = Utils.showLoading(submitBtn);
+            console.log('Calling authService.login...');
 
             await authService.login(email, password);
             
+            console.log('Login successful');
             Utils.showToast('Login successful!', 'success');
             await this.loadAuthenticatedApp();
 
         } catch (error) {
+            console.error('Login error:', error);
             Utils.showToast(error.message, 'error');
         } finally {
             Utils.hideLoading(submitBtn, 'Sign In');

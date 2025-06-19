@@ -6,7 +6,7 @@
             <p>Create your account</p>
         </div>
         
-        <form id="register-form">
+        <form id="register-form" onsubmit="handleRegisterSubmit(event)">
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
@@ -84,8 +84,10 @@
         
         <div style="text-align: center;">
             <p>Already have an account? 
-                <a href="#" id="login-link" style="color: var(--primary-blue);">Sign In</a>
+                <a href="#" id="login-link" onclick="handleLoginClick(event)" style="color: var(--primary-blue);">Sign In</a>
             </p>
         </div>
+        
+
     </div>
 </div>

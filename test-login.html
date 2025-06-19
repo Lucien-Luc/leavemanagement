@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login - BPN</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <img src="assets/logo.png" alt="BPN Logo" style="height: 60px; margin-bottom: 1rem;">
+                <h1>BPN Leave Management</h1>
+                <p>Test Login Page</p>
+            </div>
+            
+            <form id="test-login-form">
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address</label>
+                    <input type="email" id="email" name="email" class="form-control" value="test@bpn.rw" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" id="password" name="password" class="form-control" value="123456" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;">
+                    Sign In
+                </button>
+                
+                <button type="button" id="register-btn" class="btn btn-outline" style="width: 100%;">
+                    Create Account
+                </button>
+            </form>
+            
+            <div id="status" style="margin-top: 1rem; padding: 1rem; background: #f0f0f0; border-radius: 5px;">
+                Ready to test...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCp1B4T55SHNIzBCO6ogex_fswdPy-RSuo",
+            authDomain: "leave-d67b7.firebaseapp.com",
+            projectId: "leave-d67b7",
+            storageBucket: "leave-d67b7.firebasestorage.app",
+            messagingSenderId: "329360140575",
+            appId: "1:329360140575:web:77f1041f70637f637f282a"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        const statusDiv = document.getElementById('status');
+        
+        function updateStatus(message, color = 'black') {
+            statusDiv.innerHTML = `<span style="color: ${color};">${message}</span>`;
+            console.log(message);
+        }
+        
+        // Test Firebase connection
+        updateStatus('Testing Firebase connection...', 'blue');
+        
+        db.collection('test').limit(1).get()
+            .then(() => {
+                updateStatus('Firebase connected successfully!', 'green');
+            })
+            .catch((error) => {
+                updateStatus('Firebase connection failed: ' + error.message, 'red');
+            });
+
+        // Simple authentication functions
+        async function testLogin(email, password) {
+            try {
+                updateStatus('Attempting login...', 'blue');
+                
+                const hashedPassword = CryptoJS.SHA256(password).toString();
+                
+                const userQuery = await db.collection('users')
+                    .where('email', '==', email.toLowerCase())
+                    .where('password', '==', hashedPassword)
+                    .limit(1)
+                    .get();
+
+                if (userQuery.empty) {
+                    updateStatus('User not found. Try creating an account first.', 'orange');
+                    return false;
+                }
+
+                const userData = userQuery.docs[0].data();
+                updateStatus('Login successful! Welcome ' + userData.firstName, 'green');
+                return true;
+
+            } catch (error) {
+                updateStatus('Login error: ' + error.message, 'red');
+                return false;
+            }
+        }
+
+        async function testRegister(email, password) {
+            try {
+                updateStatus('Creating account...', 'blue');
+                
+                // Check if user exists
+                const existingUser = await db.collection('users')
+                    .where('email', '==', email.toLowerCase())
+                    .get();
+
+                if (!existingUser.empty) {
+                    updateStatus('User already exists. Try logging in.', 'orange');
+                    return false;
+                }
+
+                const hashedPassword = CryptoJS.SHA256(password).toString();
+                
+                const newUser = {
+                    email: email.toLowerCase(),
+                    password: hashedPassword,
+                    firstName: 'Test',
+                    lastName: 'User',
+                    employeeId: 'TEST001',
+                    department: 'IT',
+                    position: 'Developer',
+                    manager: 'Test Manager',
+                    startDate: new Date().toISOString().split('T')[0],
+                    leaveBalances: {
+                        vacation: 20,
+                        sick: 10,
+                        personal: 5,
+                        maternity: 90,
+                        paternity: 15
+                    },
+                    isActive: true,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                };
+
+                await db.collection('users').add(newUser);
+                updateStatus('Account created successfully! You can now log in.', 'green');
+                return true;
+
+            } catch (error) {
+                updateStatus('Registration error: ' + error.message, 'red');
+                return false;
+            }
+        }
+
+        // Event listeners
+        document.getElementById('test-login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            updateStatus('Form submitted! Processing...', 'blue');
+            await testLogin(email, password);
+        });
+
+        document.getElementById('register-btn').addEventListener('click', async function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                updateStatus('Please fill in email and password', 'red');
+                return;
+            }
+            
+            await testRegister(email, password);
+        });
+
+        updateStatus('Page loaded. Buttons are ready to test.', 'green');
+    </script>
+</body>
+</html>
