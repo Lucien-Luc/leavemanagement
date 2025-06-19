@@ -18,32 +18,64 @@ class DashboardController {
     }
 
     async loadData() {
-        const user = authService.getCurrentUser();
-        if (!user) return;
+        try {
+            const user = authService.getCurrentUser();
+            if (!user) {
+                console.log('No user logged in');
+                this.leaveRequests = [];
+                this.leaveBalances = {};
+                return;
+            }
 
-        // Load leave requests
-        const leaveRequestsSnapshot = await db.collection('leave_requests')
-            .where('userId', '==', user.id)
-            .orderBy('createdAt', 'desc')
-            .limit(10)
-            .get();
+            console.log('Loading dashboard data for user:', user.email);
 
-        this.leaveRequests = leaveRequestsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            startDate: doc.data().startDate?.toDate(),
-            endDate: doc.data().endDate?.toDate(),
-            createdAt: doc.data().createdAt?.toDate()
-        }));
+            // Load leave requests
+            try {
+                const leaveRequestsSnapshot = await db.collection('leave_requests')
+                    .where('userId', '==', user.id)
+                    .orderBy('createdAt', 'desc')
+                    .limit(10)
+                    .get();
 
-        // Load user data for balances
-        const userDoc = await db.collection('users').doc(user.id).get();
-        if (userDoc.exists) {
-            this.leaveBalances = userDoc.data().leaveBalances || {};
+                this.leaveRequests = leaveRequestsSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    startDate: doc.data().startDate?.toDate(),
+                    endDate: doc.data().endDate?.toDate(),
+                    createdAt: doc.data().createdAt?.toDate()
+                }));
+
+                console.log('Loaded leave requests:', this.leaveRequests.length);
+            } catch (error) {
+                console.error('Error loading leave requests:', error);
+                this.leaveRequests = [];
+            }
+
+            // Load user data for balances
+            try {
+                const userDoc = await db.collection('users').doc(user.id).get();
+                if (userDoc.exists) {
+                    this.leaveBalances = userDoc.data().leaveBalances || {};
+                    console.log('Loaded leave balances:', this.leaveBalances);
+                } else {
+                    console.log('User document not found in Firestore');
+                    this.leaveBalances = user.leaveBalances || {};
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                this.leaveBalances = user.leaveBalances || {};
+            }
+
+            // Calculate stats
+            this.calculateStats();
+
+        } catch (error) {
+            console.error('Error in loadData:', error);
+            // Set default values to prevent dashboard from breaking
+            this.leaveRequests = [];
+            this.leaveBalances = {};
+            this.calculateStats();
         }
-
-        // Calculate stats
-        this.calculateStats();
     }
 
     calculateStats() {

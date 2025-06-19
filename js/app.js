@@ -20,6 +20,8 @@ class App {
             // Check authentication state
             if (authService.isLoggedIn()) {
                 console.log('User is logged in, loading authenticated app');
+                const user = authService.getCurrentUser();
+                console.log('Current user:', user.email);
                 await this.loadAuthenticatedApp();
             } else {
                 console.log('User not logged in, loading login page');
