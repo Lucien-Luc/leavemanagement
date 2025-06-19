@@ -706,6 +706,58 @@ body {
     font-size: 0.875rem;
 }
 
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    .col-md-4 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    .col-md-8 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    .dashboard-header {
+        padding: 1rem;
+    }
+    
+    .welcome-section h1 {
+        font-size: 1.5rem;
+    }
+    
+    .calendar-day {
+        min-height: 80px;
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .calendar-day-number {
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .calendar-leave,
+    .calendar-holiday {
+        font-size: 0.65rem;
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .calendar-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .calendar-nav h3 {
+        font-size: 1.25rem;
+    }
+}
+
 /* Page Layout */
 .page-container {
     max-width: 1400px;
