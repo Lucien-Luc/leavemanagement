@@ -11,9 +11,9 @@ class Utils {
                 <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;">&times;</button>
             </div>
         `;
-        
+
         toastContainer.appendChild(toast);
-        
+
         // Auto remove after duration
         setTimeout(() => {
             if (toast.parentElement) {
@@ -25,19 +25,19 @@ class Utils {
     // Format date
     static formatDate(date, includeTime = false) {
         if (!date) return '';
-        
+
         const d = date instanceof Date ? date : new Date(date);
         const options = {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
         };
-        
+
         if (includeTime) {
             options.hour = '2-digit';
             options.minute = '2-digit';
         }
-        
+
         return d.toLocaleDateString('en-US', options);
     }
 
