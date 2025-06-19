@@ -1,0 +1,214 @@
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 style="color: var(--primary-blue); margin: 0;">
+                    <i class="fas fa-calendar"></i> Calendar
+                </h2>
+                <div>
+                    <button id="month-view-btn" class="btn btn-outline active">
+                        <i class="fas fa-calendar-alt"></i> Month View
+                    </button>
+                    <button id="list-view-btn" class="btn btn-outline">
+                        <i class="fas fa-list"></i> List View
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar View -->
+    <div id="calendar-view">
+        <div class="card">
+            <div class="calendar-header">
+                <div class="calendar-nav">
+                    <button id="prev-month" class="btn btn-outline">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <h3 id="calendar-title" style="color: var(--primary-blue); margin: 0 2rem;"></h3>
+                    <button id="next-month" class="btn btn-outline">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <button id="today-btn" class="btn btn-primary">
+                    <i class="fas fa-calendar-day"></i> Today
+                </button>
+            </div>
+            
+            <div id="calendar-grid" class="calendar-grid"></div>
+        </div>
+    </div>
+
+    <!-- List View -->
+    <div id="list-view" style="display: none;">
+        <div id="list-view-content"></div>
+    </div>
+
+    <div class="row">
+        <!-- Upcoming Events -->
+        <div class="col-md-6">
+            <div id="upcoming-events"></div>
+        </div>
+        
+        <!-- Leave Summary -->
+        <div class="col-md-6">
+            <div id="leaves-summary"></div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Legend</h4>
+                </div>
+                <div style="padding: 1rem;">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                                <div style="width: 20px; height: 20px; background: var(--primary-blue); border-radius: 4px; margin-right: 0.5rem;"></div>
+                                <span>Vacation Leave</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                                <div style="width: 20px; height: 20px; background: var(--danger); border-radius: 4px; margin-right: 0.5rem;"></div>
+                                <span>Sick Leave</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                                <div style="width: 20px; height: 20px; background: var(--success); border-radius: 4px; margin-right: 0.5rem;"></div>
+                                <span>Personal Leave</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                                <div style="width: 20px; height: 20px; background: var(--danger); border-radius: 4px; margin-right: 0.5rem;"></div>
+                                <span>Company Holiday</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Calendar specific styles */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: var(--light-grey);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.calendar-day {
+    background: var(--white);
+    padding: 0.75rem;
+    min-height: 120px;
+    position: relative;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.calendar-day:hover {
+    background: var(--light-blue);
+}
+
+.calendar-day.other-month {
+    background: #F5F5F5;
+    color: var(--medium-grey);
+}
+
+.calendar-day.has-leave {
+    background: var(--light-blue);
+}
+
+.calendar-day.has-holiday {
+    background: #FFE6E6;
+}
+
+.calendar-day.today {
+    border: 2px solid var(--primary-blue);
+}
+
+.calendar-day-number {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.calendar-leave,
+.calendar-holiday {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
+    color: white;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.calendar-leave {
+    background: var(--primary-blue);
+}
+
+.calendar-holiday {
+    background: var(--danger);
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--light-grey);
+}
+
+.calendar-nav {
+    display: flex;
+    align-items: center;
+}
+
+/* View toggle buttons */
+.btn.active {
+    background: var(--primary-blue);
+    color: white;
+    border-color: var(--primary-blue);
+}
+
+@media (max-width: 768px) {
+    .calendar-day {
+        min-height: 80px;
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .calendar-day-number {
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .calendar-leave,
+    .calendar-holiday {
+        font-size: 0.65rem;
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .calendar-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .calendar-nav h3 {
+        font-size: 1.25rem;
+    }
+}
+</style>

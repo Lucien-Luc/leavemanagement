@@ -1,0 +1,227 @@
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <h2 style="color: var(--primary-blue); margin-bottom: 2rem;">
+                <i class="fas fa-user"></i> Profile
+            </h2>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Profile Information -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Personal Information</h4>
+                    <div>
+                        <button id="edit-profile-btn" class="btn btn-outline">
+                            <i class="fas fa-edit"></i> Edit Profile
+                        </button>
+                        <button id="save-profile-btn" class="btn btn-primary" style="display: none;">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button id="cancel-edit-btn" class="btn btn-secondary" style="display: none; margin-left: 0.5rem;">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+                
+                <form id="profile-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="first-name" class="form-label">First Name</label>
+                                <input type="text" id="first-name" name="firstName" class="form-control" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="last-name" class="form-label">Last Name</label>
+                                <input type="text" id="last-name" name="lastName" class="form-control" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" id="email" name="email" class="form-control" readonly>
+                        <small class="form-text" style="color: var(--medium-grey);">Email cannot be changed</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="employee-id" class="form-label">Employee ID</label>
+                                <input type="text" id="employee-id" name="employeeId" class="form-control" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="department" class="form-label">Department</label>
+                                <input type="text" id="department" name="department" class="form-control" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="position" class="form-label">Position</label>
+                                <input type="text" id="position" name="position" class="form-control" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="manager" class="form-label">Manager</label>
+                                <input type="text" id="manager" name="manager" class="form-control" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="start-date" class="form-label">Start Date</label>
+                        <input type="date" id="start-date" name="startDate" class="form-control" readonly>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Change Password Section -->
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Change Password</h4>
+                </div>
+                
+                <form id="change-password-form">
+                    <div class="form-group">
+                        <label for="current-password" class="form-label">Current Password</label>
+                        <input type="password" id="current-password" name="currentPassword" class="form-control" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="new-password" class="form-label">New Password</label>
+                                <input type="password" id="new-password" name="newPassword" class="form-control" required minlength="6">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="confirm-new-password" class="form-label">Confirm New Password</label>
+                                <input type="password" id="confirm-new-password" name="confirmPassword" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-key"></i> Change Password
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Profile Sidebar -->
+        <div class="col-md-4">
+            <!-- Profile Picture -->
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Profile Picture</h4>
+                </div>
+                <div style="padding: 1rem; text-align: center;">
+                    <div style="position: relative; display: inline-block;">
+                        <img id="profile-picture" 
+                             src="https://via.placeholder.com/150x150/1B7B9C/FFFFFF?text=Profile" 
+                             alt="Profile Picture" 
+                             style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 4px solid var(--primary-blue);">
+                        <button id="upload-picture-btn" class="btn btn-sm btn-primary" 
+                                style="position: absolute; bottom: 10px; right: 10px; border-radius: 50%; width: 40px; height: 40px; padding: 0;">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                    </div>
+                    <input type="file" id="profile-picture-input" accept="image/*" style="display: none;">
+                    <p style="margin-top: 1rem; color: var(--medium-grey); font-size: 0.875rem;">
+                        Click the camera icon to upload a new picture
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Leave Balances -->
+            <div id="profile-leave-balances"></div>
+            
+            <!-- Profile Statistics -->
+            <div id="profile-stats"></div>
+            
+            <!-- Data Export -->
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Data Export</h4>
+                </div>
+                <div style="padding: 1rem;">
+                    <p style="color: var(--medium-grey); font-size: 0.875rem; margin-bottom: 1rem;">
+                        Download all your personal data including profile information and leave history.
+                    </p>
+                    <button onclick="profileController.downloadPersonalData()" class="btn btn-outline" style="width: 100%;">
+                        <i class="fas fa-download"></i> Download My Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Profile specific styles */
+.form-control[readonly] {
+    background-color: var(--light-grey);
+    border-color: #E9ECEF;
+}
+
+.form-control.editable {
+    background-color: var(--white);
+    border-color: var(--primary-blue);
+}
+
+.form-control.editable:focus {
+    box-shadow: 0 0 0 3px rgba(27, 123, 156, 0.1);
+}
+
+#profile-picture:hover {
+    opacity: 0.8;
+    transition: var(--transition);
+}
+
+#upload-picture-btn {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.card .form-text {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #profile-picture {
+        width: 120px;
+        height: 120px;
+    }
+    
+    #upload-picture-btn {
+        width: 35px;
+        height: 35px;
+        bottom: 5px;
+        right: 5px;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        align-items: start;
+        gap: 1rem;
+    }
+    
+    .card-header div {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+}
+</style>

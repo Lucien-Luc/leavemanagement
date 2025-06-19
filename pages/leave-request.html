@@ -1,0 +1,135 @@
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <h2 style="color: var(--primary-blue); margin-bottom: 2rem;">
+                <i class="fas fa-calendar-plus"></i> Leave Request
+            </h2>
+        </div>
+    </div>
+    
+    <!-- Editing Indicator -->
+    <div id="editing-indicator" class="card" style="display: none; background-color: var(--warning); color: var(--dark-grey); margin-bottom: 1.5rem;">
+        <div style="padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <i class="fas fa-edit"></i>
+                <strong>Editing Mode:</strong> You are currently editing an existing leave request.
+            </div>
+            <button id="cancel-edit-btn" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancel Edit
+            </button>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Leave Request Form -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Request Leave</h4>
+                </div>
+                
+                <form id="leave-request-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="leave-type" class="form-label">Leave Type</label>
+                                <select id="leave-type" name="leave-type" class="form-control" required>
+                                    <option value="">Select leave type</option>
+                                    <option value="vacation">Vacation Leave</option>
+                                    <option value="sick">Sick Leave</option>
+                                    <option value="personal">Personal Leave</option>
+                                    <option value="maternity">Maternity Leave</option>
+                                    <option value="paternity">Paternity Leave</option>
+                                    <option value="other">Other</option>
+                                </select>
+                                <div id="leave-type-info"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="start-date" class="form-label">Start Date</label>
+                                <input type="date" id="start-date" name="start-date" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="end-date" class="form-label">End Date</label>
+                                <input type="date" id="end-date" name="end-date" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Duration</label>
+                        <div id="calculated-days" style="padding: 0.75rem; background: var(--light-blue); border-radius: var(--border-radius); color: var(--primary-blue);"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="reason" class="form-label">Reason</label>
+                        <textarea id="reason" name="reason" class="form-control" rows="4" placeholder="Please provide a reason for your leave request..." required></textarea>
+                    </div>
+                    
+                    <!-- File Upload Section -->
+                    <div class="form-group">
+                        <label class="form-label">Attachments (Optional)</label>
+                        <div id="file-upload-area" class="file-upload">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <p>Click to upload or drag and drop files here</p>
+                            <small>Supported formats: PDF, DOC, DOCX, JPG, PNG (Max 5MB)</small>
+                        </div>
+                        <input type="file" id="attachment-file" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif" style="display: none;">
+                        
+                        <div id="existing-attachments" style="margin-top: 1rem;"></div>
+                        <div id="attachments-list" style="margin-top: 1rem;"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Submit Request
+                        </button>
+                        <button type="reset" class="btn btn-secondary" style="margin-left: 1rem;">
+                            <i class="fas fa-undo"></i> Reset Form
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Quick Info Sidebar -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Quick Info</h4>
+                </div>
+                <div style="padding: 1rem;">
+                    <h5 style="color: var(--primary-blue); margin-bottom: 1rem;">Leave Guidelines</h5>
+                    <ul style="padding-left: 1.5rem; color: var(--medium-grey);">
+                        <li>Submit requests at least 2 weeks in advance</li>
+                        <li>Sick leave may require medical documentation</li>
+                        <li>All requests require manager approval</li>
+                        <li>Check your leave balance before submitting</li>
+                    </ul>
+                    
+                    <h5 style="color: var(--primary-blue); margin-bottom: 1rem; margin-top: 2rem;">Contact HR</h5>
+                    <p style="color: var(--medium-grey); font-size: 0.875rem;">
+                        For questions about leave policies or urgent requests, contact HR at:
+                        <br><strong>hr@bpn.com</strong>
+                        <br><strong>+1 (555) 123-4567</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Leave History -->
+    <div class="row">
+        <div class="col">
+            <div id="leave-history"></div>
+        </div>
+    </div>
+</div>
