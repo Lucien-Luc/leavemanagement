@@ -15,13 +15,14 @@ class HRApp {
             await this.waitForFirebase();
             console.log('Firebase initialized for HR Portal');
 
-            // Check authentication state
-            if (authService.isLoggedIn()) {
+            // Check authentication state and HR access
+            const hasHRAccess = await authService.checkHRAccess();
+            if (hasHRAccess) {
                 console.log('HR user is logged in, loading portal');
                 await this.loadAuthenticatedApp();
             } else {
-                console.log('HR user not logged in, redirecting to employee portal');
-                // Redirect to main employee portal login
+                console.log('HR user not logged in or no HR access, redirecting to employee portal');
+                alert('You need to be logged in as an HR user to access this portal. Please log in through the employee portal first.');
                 window.location.href = '../index.html';
                 return;
             }

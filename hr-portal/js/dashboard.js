@@ -2,137 +2,110 @@
 class DashboardController {
     constructor() {
         this.stats = {};
-        this.recentActivities = [];
-        this.realTimeListeners = [];
+        this.recentRequests = [];
+        this.employees = [];
     }
 
     async init() {
         try {
             await this.loadDashboardData();
-            this.setupRealTimeListeners();
             this.renderDashboard();
+            this.setupEventListeners();
+            this.startRealTimeUpdates();
         } catch (error) {
-            console.error('Dashboard initialization failed:', error);
+            console.error('HR Dashboard initialization failed:', error);
             Utils.showToast('Failed to load dashboard data', 'error');
         }
     }
 
     async loadDashboardData() {
-        try {
-            // Load statistics
-            await this.loadStats();
-            
-            // Load recent activities
-            await this.loadRecentActivities();
-        } catch (error) {
-            console.error('Error loading dashboard data:', error);
-            throw error;
-        }
+        await Promise.all([
+            this.loadStats(),
+            this.loadRecentRequests(),
+            this.loadEmployeeData()
+        ]);
     }
 
     async loadStats() {
         try {
-            // Get total employees
-            const usersSnapshot = await db.collection('users').get();
-            const totalEmployees = usersSnapshot.size;
-            
-            // Get active employees (not including HR users)
-            const activeEmployees = usersSnapshot.docs.filter(doc => {
-                const data = doc.data();
-                return data.isActive !== false && !data.isHR;
-            }).length;
-
-            // Get leave requests statistics
+            // Get all leave requests
             const leaveRequestsSnapshot = await db.collection('leave_requests').get();
-            const allRequests = leaveRequestsSnapshot.docs.map(doc => doc.data());
-            
-            const pendingRequests = allRequests.filter(req => req.status === 'pending').length;
-            const approvedRequests = allRequests.filter(req => req.status === 'approved').length;
-            const rejectedRequests = allRequests.filter(req => req.status === 'rejected').length;
+            const requests = leaveRequestsSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
 
-            // Get current month requests
-            const currentMonth = new Date();
-            const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-            const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-            
-            const currentMonthRequests = allRequests.filter(req => {
-                const createdAt = req.createdAt.toDate();
-                return createdAt >= firstDay && createdAt <= lastDay;
-            }).length;
+            // Get all employees
+            const employeesSnapshot = await db.collection('users').get();
+            const employees = employeesSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
 
+            // Calculate stats
             this.stats = {
-                totalEmployees,
-                activeEmployees,
-                pendingRequests,
-                approvedRequests,
-                rejectedRequests,
-                currentMonthRequests,
-                totalRequests: allRequests.length
+                totalEmployees: employees.length,
+                totalRequests: requests.length,
+                pendingRequests: requests.filter(r => r.status === 'pending').length,
+                approvedRequests: requests.filter(r => r.status === 'approved').length,
+                rejectedRequests: requests.filter(r => r.status === 'rejected').length,
+                activeEmployees: employees.filter(e => e.isActive !== false).length
             };
+
         } catch (error) {
             console.error('Error loading stats:', error);
             this.stats = {
                 totalEmployees: 0,
-                activeEmployees: 0,
+                totalRequests: 0,
                 pendingRequests: 0,
                 approvedRequests: 0,
                 rejectedRequests: 0,
-                currentMonthRequests: 0,
-                totalRequests: 0
+                activeEmployees: 0
             };
         }
     }
 
-    async loadRecentActivities() {
+    async loadRecentRequests() {
         try {
-            // Get recent leave requests (last 10)
-            const recentRequestsSnapshot = await db.collection('leave_requests')
+            const snapshot = await db.collection('leave_requests')
                 .orderBy('createdAt', 'desc')
                 .limit(10)
                 .get();
 
-            this.recentActivities = recentRequestsSnapshot.docs.map(doc => {
+            this.recentRequests = snapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
                     id: doc.id,
-                    type: 'leave_request',
-                    action: 'submitted',
-                    user: data.userName,
-                    details: `${data.leaveType} leave for ${data.days} days`,
-                    timestamp: data.createdAt.toDate(),
-                    status: data.status
+                    ...data,
+                    startDate: data.startDate?.toDate(),
+                    endDate: data.endDate?.toDate(),
+                    createdAt: data.createdAt?.toDate()
                 };
             });
         } catch (error) {
-            console.error('Error loading recent activities:', error);
-            this.recentActivities = [];
+            console.error('Error loading recent requests:', error);
+            this.recentRequests = [];
         }
     }
 
-    setupRealTimeListeners() {
-        // Listen for new leave requests
-        const leaveRequestsListener = db.collection('leave_requests')
-            .where('status', '==', 'pending')
-            .onSnapshot((snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === 'added') {
-                        const data = change.doc.data();
-                        Utils.showToast(`New leave request from ${data.userName}`, 'info');
-                        this.loadStats(); // Refresh stats
-                    }
-                });
-            });
-
-        this.realTimeListeners.push(leaveRequestsListener);
+    async loadEmployeeData() {
+        try {
+            const snapshot = await db.collection('users').get();
+            this.employees = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+        } catch (error) {
+            console.error('Error loading employee data:', error);
+            this.employees = [];
+        }
     }
 
     renderDashboard() {
-        const mainContent = document.getElementById('main-content');
-        
-        mainContent.innerHTML = `
+        const content = `
             <div class="page-header">
                 <h1 class="page-title">HR Dashboard</h1>
-                <p class="page-subtitle">Manage employees and leave requests</p>
+                <p class="page-subtitle">Overview of leave management system</p>
             </div>
 
             <div class="stats-grid">
@@ -148,16 +121,6 @@ class DashboardController {
 
                 <div class="stat-card">
                     <div class="stat-header">
-                        <div class="stat-icon success">
-                            <i class="fas fa-user-check"></i>
-                        </div>
-                    </div>
-                    <div class="stat-value">${this.stats.activeEmployees}</div>
-                    <div class="stat-label">Active Employees</div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-header">
                         <div class="stat-icon warning">
                             <i class="fas fa-clock"></i>
                         </div>
@@ -168,97 +131,156 @@ class DashboardController {
 
                 <div class="stat-card">
                     <div class="stat-header">
-                        <div class="stat-icon info">
-                            <i class="fas fa-calendar-month"></i>
+                        <div class="stat-icon success">
+                            <i class="fas fa-check-circle"></i>
                         </div>
                     </div>
-                    <div class="stat-value">${this.stats.currentMonthRequests}</div>
-                    <div class="stat-label">This Month's Requests</div>
+                    <div class="stat-value">${this.stats.approvedRequests}</div>
+                    <div class="stat-label">Approved Requests</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon danger">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">${this.stats.rejectedRequests}</div>
+                    <div class="stat-label">Rejected Requests</div>
                 </div>
             </div>
 
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Leave Requests Overview</h3>
+                    <h3 class="card-title">Recent Leave Requests</h3>
                 </div>
                 <div class="card-body">
-                    <canvas id="leaveChart" width="400" height="200"></canvas>
-                </div>
-            </div>
-
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h3 class="card-title">Recent Activities</h3>
-                </div>
-                <div class="card-body">
-                    <div id="recent-activities">
-                        ${this.renderRecentActivities()}
-                    </div>
+                    ${this.renderRecentRequestsTable()}
                 </div>
             </div>
         `;
 
-        this.renderChart();
+        document.getElementById('main-content').innerHTML = content;
     }
 
-    renderChart() {
-        const ctx = document.getElementById('leaveChart');
-        if (!ctx) return;
-
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Approved', 'Pending', 'Rejected'],
-                datasets: [{
-                    data: [
-                        this.stats.approvedRequests,
-                        this.stats.pendingRequests,
-                        this.stats.rejectedRequests
-                    ],
-                    backgroundColor: [
-                        'var(--success-color)',
-                        'var(--warning-color)',
-                        'var(--danger-color)'
-                    ],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-    }
-
-    renderRecentActivities() {
-        if (this.recentActivities.length === 0) {
-            return '<p class="text-muted">No recent activities</p>';
+    renderRecentRequestsTable() {
+        if (this.recentRequests.length === 0) {
+            return '<p class="text-muted text-center">No recent leave requests found.</p>';
         }
 
-        return this.recentActivities.map(activity => `
-            <div class="d-flex align-items-center justify-content-between mb-2 p-2" style="border-left: 3px solid var(--primary-color); background: rgba(27, 123, 156, 0.05);">
-                <div>
-                    <strong>${activity.user}</strong> ${activity.action} a leave request
-                    <br>
-                    <small class="text-muted">${activity.details}</small>
-                </div>
-                <div class="text-right">
-                    ${Utils.getStatusBadge(activity.status)}
-                    <br>
-                    <small class="text-muted">${Utils.formatDateTime(activity.timestamp)}</small>
-                </div>
+        return `
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Leave Type</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Days</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${this.recentRequests.map(request => `
+                            <tr>
+                                <td>
+                                    <div>
+                                        <strong>${request.userName}</strong><br>
+                                        <small class="text-muted">${request.userEmail}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge badge-info">${request.leaveType}</span>
+                                </td>
+                                <td>${Utils.formatDate(request.startDate)}</td>
+                                <td>${Utils.formatDate(request.endDate)}</td>
+                                <td>${request.days}</td>
+                                <td>${Utils.getStatusBadge(request.status)}</td>
+                                <td>
+                                    ${request.status === 'pending' ? `
+                                        <button class="btn btn-success btn-sm" onclick="dashboardController.approveRequest('${request.id}')">
+                                            <i class="fas fa-check"></i> Approve
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" onclick="dashboardController.rejectRequest('${request.id}')">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
+                                    ` : `
+                                        <button class="btn btn-outline btn-sm" onclick="dashboardController.viewRequest('${request.id}')">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    `}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
             </div>
-        `).join('');
+        `;
     }
 
-    destroy() {
-        // Clean up real-time listeners
-        this.realTimeListeners.forEach(listener => listener());
-        this.realTimeListeners = [];
+    async approveRequest(requestId) {
+        try {
+            const currentUser = authService.getCurrentUser();
+            await db.collection('leave_requests').doc(requestId).update({
+                status: 'approved',
+                approvedBy: `${currentUser.firstName} ${currentUser.lastName}`,
+                approvedAt: firebase.firestore.Timestamp.now(),
+                updatedAt: firebase.firestore.Timestamp.now()
+            });
+
+            Utils.showToast('Leave request approved successfully', 'success');
+            await this.loadDashboardData();
+            this.renderDashboard();
+        } catch (error) {
+            console.error('Error approving request:', error);
+            Utils.showToast('Failed to approve request', 'error');
+        }
+    }
+
+    async rejectRequest(requestId) {
+        const reason = prompt('Please provide a reason for rejection:');
+        if (!reason) return;
+
+        try {
+            const currentUser = authService.getCurrentUser();
+            await db.collection('leave_requests').doc(requestId).update({
+                status: 'rejected',
+                rejectedBy: `${currentUser.firstName} ${currentUser.lastName}`,
+                rejectionReason: reason,
+                rejectedAt: firebase.firestore.Timestamp.now(),
+                updatedAt: firebase.firestore.Timestamp.now()
+            });
+
+            Utils.showToast('Leave request rejected', 'success');
+            await this.loadDashboardData();
+            this.renderDashboard();
+        } catch (error) {
+            console.error('Error rejecting request:', error);
+            Utils.showToast('Failed to reject request', 'error');
+        }
+    }
+
+    viewRequest(requestId) {
+        // Navigate to leave requests page with this request selected
+        window.location.hash = 'leave-requests';
+        // You can implement detailed view logic here
+    }
+
+    setupEventListeners() {
+        // Add any additional event listeners here
+    }
+
+    startRealTimeUpdates() {
+        // Listen for real-time updates to leave requests
+        db.collection('leave_requests').onSnapshot(() => {
+            this.loadDashboardData().then(() => {
+                this.renderDashboard();
+            });
+        });
     }
 }
+
+// Global controller instance
+window.dashboardController = new DashboardController();

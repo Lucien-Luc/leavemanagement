@@ -1,0 +1,62 @@
+<!-- HR Leave Types Page Content -->
+<div class="page-header">
+    <h1 class="page-title">Leave Types Management</h1>
+    <p class="page-subtitle">Configure and manage different types of leave</p>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex gap-2">
+        <span class="text-muted">Total Leave Types: 0</span>
+    </div>
+    <button class="btn btn-primary" onclick="leaveTypesController.showAddLeaveTypeModal()">
+        <i class="fas fa-plus"></i> Add Leave Type
+    </button>
+</div>
+
+<div class="stats-grid mb-3">
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon primary">
+                <i class="fas fa-list"></i>
+            </div>
+        </div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Total Leave Types</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+        </div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Active Types</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon warning">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+        </div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Require Approval</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon info">
+                <i class="fas fa-calendar-plus"></i>
+            </div>
+        </div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Total Default Days</div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <p class="text-muted text-center">Loading leave types...</p>
+    </div>
+</div>

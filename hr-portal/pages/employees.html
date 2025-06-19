@@ -1,0 +1,72 @@
+<!-- HR Employees Management Page Content -->
+<div class="page-header">
+    <h1 class="page-title">Employee Management</h1>
+    <p class="page-subtitle">Manage all employees and their information</p>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex gap-2">
+        <input type="text" id="employee-search" class="form-control" placeholder="Search employees..." style="width: 300px;">
+        <select id="employee-filter" class="form-select" style="width: 200px;">
+            <option value="all">All Employees</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="hr">HR Department</option>
+            <option value="recent">Recently Added</option>
+        </select>
+    </div>
+    <button class="btn btn-primary" onclick="employeesController.showAddEmployeeModal()">
+        <i class="fas fa-plus"></i> Add Employee
+    </button>
+</div>
+
+<div class="stats-grid mb-3">
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon primary">
+                <i class="fas fa-users"></i>
+            </div>
+        </div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Total Employees</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon success">
+                <i class="fas fa-user-check"></i>
+            </div>
+        </div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Active Employees</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon warning">
+                <i class="fas fa-building"></i>
+            </div>
+        </div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Departments</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon info">
+                <i class="fas fa-calendar-plus"></i>
+            </div>
+        </div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">New This Month</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Employees List</h3>
+    </div>
+    <div class="card-body">
+        <p class="text-muted text-center">Loading employees...</p>
+    </div>
+</div>

@@ -1,0 +1,73 @@
+<!-- HR Leave Requests Page Content -->
+<div class="page-header">
+    <h1 class="page-title">Leave Requests Management</h1>
+    <p class="page-subtitle">Review and manage all employee leave requests</p>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex gap-2">
+        <input type="text" id="request-search" class="form-control" placeholder="Search by employee name or email..." style="width: 300px;">
+        <select id="request-filter" class="form-select" style="width: 200px;">
+            <option value="all">All Requests</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="today">Today's Requests</option>
+            <option value="this-week">This Week</option>
+        </select>
+    </div>
+    <button class="btn btn-primary" onclick="leaveRequestsController.exportRequests()">
+        <i class="fas fa-download"></i> Export CSV
+    </button>
+</div>
+
+<div class="stats-grid mb-3">
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon warning">
+                <i class="fas fa-clock"></i>
+            </div>
+        </div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Pending Requests</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+        </div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Approved Requests</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon danger">
+                <i class="fas fa-times-circle"></i>
+            </div>
+        </div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Rejected Requests</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon info">
+                <i class="fas fa-calendar-day"></i>
+            </div>
+        </div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Total Days Requested</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Leave Requests</h3>
+    </div>
+    <div class="card-body">
+        <p class="text-muted text-center">Loading leave requests...</p>
+    </div>
+</div>

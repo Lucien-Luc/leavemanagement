@@ -214,3 +214,6 @@ The application uses the following Firestore collections designed for easy HR in
 - June 19, 2025: Redesigned all pages (Dashboard, Leave Request, Calendar, Profile) with consistent modern styling
 - June 19, 2025: Added gradient headers, improved card designs, and enhanced mobile responsiveness
 - June 19, 2025: Migration from Replit Agent to Replit environment completed successfully
+- June 19, 2025: Created comprehensive HR Portal application at `/hr-portal/`
+- June 19, 2025: HR Portal includes employee management, leave request management, leave types configuration, and analytics/reports
+- June 19, 2025: Implemented role-based access control for HR functions

@@ -1,4 +1,4 @@
-// HR Portal Authentication Module
+// HR Portal Authentication Service
 class AuthService {
     constructor() {
         this.currentUser = null;
@@ -31,51 +31,43 @@ class AuthService {
         return this.currentUser;
     }
 
-    async login(email, password) {
-        try {
-            const hashedPassword = CryptoJS.SHA256(password).toString();
-            
-            const userQuery = await db.collection('users')
-                .where('email', '==', email.toLowerCase())
-                .where('password', '==', hashedPassword)
-                .limit(1)
-                .get();
-
-            if (userQuery.empty) {
-                throw new Error('Invalid email or password');
-            }
-
-            const userDoc = userQuery.docs[0];
-            const userData = { id: userDoc.id, ...userDoc.data() };
-
-            // Check if user has HR privileges (you can customize this logic)
-            if (!userData.isHR && userData.department !== 'Human Resources') {
-                throw new Error('Access denied. HR privileges required.');
-            }
-
-            // Create session
-            const sessionData = {
-                user: userData,
-                expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-            };
-
-            localStorage.setItem(this.sessionKey, JSON.stringify(sessionData));
-            this.currentUser = userData;
-
-            // Update last login
-            await db.collection('users').doc(userData.id).update({
-                lastLogin: firebase.firestore.Timestamp.now()
-            });
-
-            return userData;
-        } catch (error) {
-            console.error('Login error:', error);
-            throw error;
-        }
+    logout() {
+        this.currentUser = null;
+        localStorage.removeItem(this.sessionKey);
     }
 
-    logout() {
-        localStorage.removeItem(this.sessionKey);
-        this.currentUser = null;
+    // For HR portal, we'll use the same authentication as employee portal
+    // but check if user has HR privileges
+    async checkHRAccess() {
+        const employeeSession = localStorage.getItem('bpn_leave_session');
+        if (!employeeSession) return false;
+
+        try {
+            const session = JSON.parse(employeeSession);
+            if (session.expires > Date.now()) {
+                const user = session.user;
+                // Check if user has HR role or is in HR department
+                if (user.department === 'HR' || user.role === 'HR' || user.position?.toLowerCase().includes('hr')) {
+                    this.currentUser = user;
+                    this.createHRSession(user);
+                    return true;
+                }
+            }
+        } catch (error) {
+            console.error('Error checking HR access:', error);
+        }
+        
+        return false;
+    }
+
+    createHRSession(user) {
+        const sessionData = {
+            user: user,
+            expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+        };
+        localStorage.setItem(this.sessionKey, JSON.stringify(sessionData));
     }
 }
+
+// Global auth service instance
+window.authService = new AuthService();

@@ -3,229 +3,141 @@ class EmployeesController {
     constructor() {
         this.employees = [];
         this.filteredEmployees = [];
-        this.currentSort = { field: 'lastName', direction: 'asc' };
+        this.currentFilter = 'all';
         this.searchTerm = '';
-        this.realTimeListener = null;
     }
 
     async init() {
         try {
             await this.loadEmployees();
-            this.setupRealTimeListener();
-            this.renderEmployees();
+            this.renderEmployeesPage();
             this.setupEventListeners();
+            this.startRealTimeUpdates();
         } catch (error) {
-            console.error('Employees initialization failed:', error);
+            console.error('Employees controller initialization failed:', error);
             Utils.showToast('Failed to load employees data', 'error');
         }
     }
 
     async loadEmployees() {
         try {
-            const usersSnapshot = await db.collection('users')
-                .orderBy('lastName')
-                .get();
-
-            this.employees = usersSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            })).filter(user => !user.isHR); // Exclude HR users from employee list
-
-            this.filteredEmployees = [...this.employees];
+            const snapshot = await db.collection('users').get();
+            this.employees = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    startDate: data.startDate,
+                    createdAt: data.createdAt?.toDate(),
+                    lastLogin: data.lastLogin?.toDate()
+                };
+            });
+            this.applyFilters();
         } catch (error) {
             console.error('Error loading employees:', error);
             this.employees = [];
-            this.filteredEmployees = [];
         }
     }
 
-    setupRealTimeListener() {
-        this.realTimeListener = db.collection('users')
-            .onSnapshot((snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === 'added' || change.type === 'modified') {
-                        this.loadEmployees().then(() => {
-                            this.applyFilters();
-                            this.renderEmployeesTable();
-                        });
-                    }
-                });
-            });
-    }
-
-    renderEmployees() {
-        const mainContent = document.getElementById('main-content');
-        
-        mainContent.innerHTML = `
+    renderEmployeesPage() {
+        const content = `
             <div class="page-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h1 class="page-title">Employee Management</h1>
-                        <p class="page-subtitle">Manage employee accounts and information</p>
+                <h1 class="page-title">Employee Management</h1>
+                <p class="page-subtitle">Manage all employees and their information</p>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex gap-2">
+                    <input type="text" id="employee-search" class="form-control" placeholder="Search employees..." value="${this.searchTerm}" style="width: 300px;">
+                    <select id="employee-filter" class="form-select" style="width: 200px;">
+                        <option value="all">All Employees</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="hr">HR Department</option>
+                        <option value="recent">Recently Added</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="employeesController.showAddEmployeeModal()">
+                    <i class="fas fa-plus"></i> Add Employee
+                </button>
+            </div>
+
+            <div class="stats-grid mb-3">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon primary">
+                            <i class="fas fa-users"></i>
+                        </div>
                     </div>
-                    <button class="btn btn-primary" onclick="employeesController.showAddEmployeeModal()">
-                        <i class="fas fa-plus"></i>
-                        Add Employee
-                    </button>
+                    <div class="stat-value">${this.employees.length}</div>
+                    <div class="stat-label">Total Employees</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon success">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">${this.employees.filter(e => e.isActive !== false).length}</div>
+                    <div class="stat-label">Active Employees</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon warning">
+                            <i class="fas fa-building"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">${new Set(this.employees.map(e => e.department)).size}</div>
+                    <div class="stat-label">Departments</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon info">
+                            <i class="fas fa-calendar-plus"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">${this.employees.filter(e => {
+                        const created = e.createdAt;
+                        return created && (Date.now() - created.getTime()) < (30 * 24 * 60 * 60 * 1000);
+                    }).length}</div>
+                    <div class="stat-label">New This Month</div>
                 </div>
             </div>
 
             <div class="card">
                 <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="card-title">Employees (${this.filteredEmployees.length})</h3>
-                        <div class="d-flex gap-2">
-                            <input type="text" id="search-employees" placeholder="Search employees..." class="form-control" style="width: 250px;">
-                            <button class="btn btn-outline" onclick="employeesController.exportEmployees()">
-                                <i class="fas fa-download"></i>
-                                Export
-                            </button>
-                        </div>
-                    </div>
+                    <h3 class="card-title">Employees List (${this.filteredEmployees.length})</h3>
                 </div>
                 <div class="card-body">
-                    <div id="employees-table-container">
-                        ${this.renderEmployeesTable()}
-                    </div>
+                    ${this.renderEmployeesTable()}
                 </div>
             </div>
 
-            <!-- Add Employee Modal -->
-            <div id="add-employee-modal" class="modal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3 class="modal-title">Add New Employee</h3>
-                        <button class="modal-close">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="add-employee-form">
-                            <div class="form-group">
-                                <label class="form-label">First Name</label>
-                                <input type="text" name="firstName" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Last Name</label>
-                                <input type="text" name="lastName" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Email</label>
-                                <input type="email" name="email" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Employee ID</label>
-                                <input type="text" name="employeeId" class="form-control" readonly>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Department</label>
-                                <select name="department" class="form-control form-select" required>
-                                    <option value="">Select Department</option>
-                                    <option value="IT">IT</option>
-                                    <option value="Human Resources">Human Resources</option>
-                                    <option value="Finance">Finance</option>
-                                    <option value="Marketing">Marketing</option>
-                                    <option value="Operations">Operations</option>
-                                    <option value="Sales">Sales</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Position</label>
-                                <input type="text" name="position" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Manager</label>
-                                <input type="text" name="manager" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Start Date</label>
-                                <input type="date" name="startDate" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Temporary Password</label>
-                                <input type="password" name="password" class="form-control" value="BPN123456" required>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline" onclick="Utils.hideModal('add-employee-modal')">Cancel</button>
-                        <button type="submit" form="add-employee-form" class="btn btn-primary">Add Employee</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Edit Employee Modal -->
-            <div id="edit-employee-modal" class="modal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3 class="modal-title">Edit Employee</h3>
-                        <button class="modal-close">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="edit-employee-form">
-                            <input type="hidden" name="employeeId" id="edit-employee-id">
-                            <div class="form-group">
-                                <label class="form-label">First Name</label>
-                                <input type="text" name="firstName" id="edit-firstName" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Last Name</label>
-                                <input type="text" name="lastName" id="edit-lastName" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Email</label>
-                                <input type="email" name="email" id="edit-email" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Department</label>
-                                <select name="department" id="edit-department" class="form-control form-select" required>
-                                    <option value="IT">IT</option>
-                                    <option value="Human Resources">Human Resources</option>
-                                    <option value="Finance">Finance</option>
-                                    <option value="Marketing">Marketing</option>
-                                    <option value="Operations">Operations</option>
-                                    <option value="Sales">Sales</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Position</label>
-                                <input type="text" name="position" id="edit-position" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Manager</label>
-                                <input type="text" name="manager" id="edit-manager" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Status</label>
-                                <select name="isActive" id="edit-isActive" class="form-control form-select">
-                                    <option value="true">Active</option>
-                                    <option value="false">Inactive</option>
-                                </select>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline" onclick="Utils.hideModal('edit-employee-modal')">Cancel</button>
-                        <button type="submit" form="edit-employee-form" class="btn btn-primary">Update Employee</button>
-                    </div>
-                </div>
-            </div>
+            ${this.renderAddEmployeeModal()}
+            ${this.renderEditEmployeeModal()}
         `;
 
-        // Generate employee ID for new employee
-        document.querySelector('input[name="employeeId"]').value = Utils.generateEmployeeId();
+        document.getElementById('main-content').innerHTML = content;
     }
 
     renderEmployeesTable() {
+        if (this.filteredEmployees.length === 0) {
+            return '<p class="text-muted text-center">No employees found matching your criteria.</p>';
+        }
+
         return `
             <div class="table-container">
                 <table class="table">
                     <thead>
                         <tr>
-                            <th onclick="employeesController.sortBy('employeeId')">Employee ID</th>
-                            <th onclick="employeesController.sortBy('lastName')">Name</th>
-                            <th onclick="employeesController.sortBy('email')">Email</th>
-                            <th onclick="employeesController.sortBy('department')">Department</th>
-                            <th onclick="employeesController.sortBy('position')">Position</th>
-                            <th onclick="employeesController.sortBy('startDate')">Start Date</th>
+                            <th>Employee</th>
+                            <th>Employee ID</th>
+                            <th>Department</th>
+                            <th>Position</th>
+                            <th>Start Date</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -233,25 +145,35 @@ class EmployeesController {
                     <tbody>
                         ${this.filteredEmployees.map(employee => `
                             <tr>
-                                <td>${employee.employeeId || 'N/A'}</td>
-                                <td>${employee.firstName} ${employee.lastName}</td>
-                                <td>${employee.email}</td>
-                                <td>${employee.department || 'N/A'}</td>
-                                <td>${employee.position || 'N/A'}</td>
-                                <td>${Utils.formatDate(employee.startDate)}</td>
-                                <td>${Utils.getStatusBadge(employee.isActive !== false ? 'active' : 'inactive')}</td>
                                 <td>
-                                    <div class="d-flex gap-1">
-                                        <button class="btn btn-sm btn-primary" onclick="employeesController.editEmployee('${employee.id}')">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-warning" onclick="employeesController.resetPassword('${employee.id}')">
-                                            <i class="fas fa-key"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-danger" onclick="employeesController.toggleEmployeeStatus('${employee.id}', ${employee.isActive !== false})">
-                                            <i class="fas fa-${employee.isActive !== false ? 'ban' : 'check'}"></i>
-                                        </button>
+                                    <div>
+                                        <strong>${employee.firstName} ${employee.lastName}</strong><br>
+                                        <small class="text-muted">${employee.email}</small>
                                     </div>
+                                </td>
+                                <td>${employee.employeeId || 'N/A'}</td>
+                                <td>
+                                    <span class="badge badge-info">${employee.department || 'N/A'}</span>
+                                </td>
+                                <td>${employee.position || 'N/A'}</td>
+                                <td>${Utils.formatDate(employee.startDate) || 'N/A'}</td>
+                                <td>${Utils.getStatusBadge(employee.isActive === false ? 'inactive' : 'active')}</td>
+                                <td>
+                                    <button class="btn btn-outline btn-sm" onclick="employeesController.editEmployee('${employee.id}')">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-info btn-sm" onclick="employeesController.viewLeaveBalance('${employee.id}')">
+                                        <i class="fas fa-calendar"></i> Leave
+                                    </button>
+                                    ${employee.isActive !== false ? `
+                                        <button class="btn btn-danger btn-sm" onclick="employeesController.deactivateEmployee('${employee.id}')">
+                                            <i class="fas fa-user-times"></i> Deactivate
+                                        </button>
+                                    ` : `
+                                        <button class="btn btn-success btn-sm" onclick="employeesController.activateEmployee('${employee.id}')">
+                                            <i class="fas fa-user-check"></i> Activate
+                                        </button>
+                                    `}
                                 </td>
                             </tr>
                         `).join('')}
@@ -261,15 +183,115 @@ class EmployeesController {
         `;
     }
 
+    renderAddEmployeeModal() {
+        return `
+            <div id="add-employee-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Add New Employee</h4>
+                        <button class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="add-employee-form">
+                            <div class="form-group">
+                                <label class="form-label">First Name</label>
+                                <input type="text" class="form-control" name="firstName" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" class="form-control" name="lastName" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Employee ID</label>
+                                <input type="text" class="form-control" name="employeeId" value="${Utils.generateEmployeeId()}">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Department</label>
+                                <select class="form-select" name="department" required>
+                                    <option value="">Select Department</option>
+                                    <option value="HR">Human Resources</option>
+                                    <option value="IT">Information Technology</option>
+                                    <option value="Finance">Finance</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Sales">Sales</option>
+                                    <option value="Operations">Operations</option>
+                                    <option value="Legal">Legal</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Position</label>
+                                <input type="text" class="form-control" name="position" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Manager</label>
+                                <input type="text" class="form-control" name="manager">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Start Date</label>
+                                <input type="date" class="form-control" name="startDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Initial Password</label>
+                                <input type="password" class="form-control" name="password" value="BPN123456" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" onclick="Utils.hideModal('add-employee-modal')">Cancel</button>
+                        <button type="submit" form="add-employee-form" class="btn btn-primary">Add Employee</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderEditEmployeeModal() {
+        return `
+            <div id="edit-employee-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Edit Employee</h4>
+                        <button class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="edit-employee-form">
+                            <input type="hidden" name="employeeId" id="edit-employee-id">
+                            <!-- Form fields will be populated dynamically -->
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" onclick="Utils.hideModal('edit-employee-modal')">Cancel</button>
+                        <button type="submit" form="edit-employee-form" class="btn btn-primary">Update Employee</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     setupEventListeners() {
         // Search functionality
-        const searchInput = document.getElementById('search-employees');
+        const searchInput = document.getElementById('employee-search');
         if (searchInput) {
             searchInput.addEventListener('input', Utils.debounce((e) => {
-                this.searchTerm = e.target.value.toLowerCase();
+                this.searchTerm = e.target.value;
                 this.applyFilters();
-                document.getElementById('employees-table-container').innerHTML = this.renderEmployeesTable();
+                this.renderEmployeesPage();
             }, 300));
+        }
+
+        // Filter functionality
+        const filterSelect = document.getElementById('employee-filter');
+        if (filterSelect) {
+            filterSelect.value = this.currentFilter;
+            filterSelect.addEventListener('change', (e) => {
+                this.currentFilter = e.target.value;
+                this.applyFilters();
+                this.renderEmployeesPage();
+            });
         }
 
         // Add employee form
@@ -284,247 +306,226 @@ class EmployeesController {
             editForm.addEventListener('submit', (e) => this.handleEditEmployee(e));
         }
 
-        // Setup modal close handlers
+        // Setup modal close functionality
         Utils.setupModalClose('add-employee-modal');
         Utils.setupModalClose('edit-employee-modal');
     }
 
     applyFilters() {
-        this.filteredEmployees = this.employees.filter(employee => {
-            const searchMatch = this.searchTerm === '' || 
-                employee.firstName.toLowerCase().includes(this.searchTerm) ||
-                employee.lastName.toLowerCase().includes(this.searchTerm) ||
-                employee.email.toLowerCase().includes(this.searchTerm) ||
-                (employee.department && employee.department.toLowerCase().includes(this.searchTerm)) ||
-                (employee.employeeId && employee.employeeId.toLowerCase().includes(this.searchTerm));
-            
-            return searchMatch;
-        });
+        let filtered = [...this.employees];
 
-        this.sortEmployees();
-    }
-
-    sortBy(field) {
-        if (this.currentSort.field === field) {
-            this.currentSort.direction = this.currentSort.direction === 'asc' ? 'desc' : 'asc';
-        } else {
-            this.currentSort.field = field;
-            this.currentSort.direction = 'asc';
+        // Apply search filter
+        if (this.searchTerm) {
+            const term = this.searchTerm.toLowerCase();
+            filtered = filtered.filter(emp => 
+                `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(term) ||
+                emp.email.toLowerCase().includes(term) ||
+                emp.employeeId?.toLowerCase().includes(term) ||
+                emp.department?.toLowerCase().includes(term)
+            );
         }
-        
-        this.sortEmployees();
-        document.getElementById('employees-table-container').innerHTML = this.renderEmployeesTable();
-    }
 
-    sortEmployees() {
-        this.filteredEmployees.sort((a, b) => {
-            let aValue = a[this.currentSort.field] || '';
-            let bValue = b[this.currentSort.field] || '';
-            
-            if (this.currentSort.field === 'startDate') {
-                aValue = new Date(aValue);
-                bValue = new Date(bValue);
-            } else {
-                aValue = aValue.toString().toLowerCase();
-                bValue = bValue.toString().toLowerCase();
-            }
-            
-            if (this.currentSort.direction === 'asc') {
-                return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-            } else {
-                return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-            }
-        });
+        // Apply status filter
+        switch (this.currentFilter) {
+            case 'active':
+                filtered = filtered.filter(emp => emp.isActive !== false);
+                break;
+            case 'inactive':
+                filtered = filtered.filter(emp => emp.isActive === false);
+                break;
+            case 'hr':
+                filtered = filtered.filter(emp => emp.department === 'HR');
+                break;
+            case 'recent':
+                const thirtyDaysAgo = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000));
+                filtered = filtered.filter(emp => emp.createdAt && emp.createdAt > thirtyDaysAgo);
+                break;
+        }
+
+        this.filteredEmployees = filtered;
     }
 
     showAddEmployeeModal() {
-        // Generate new employee ID
-        document.querySelector('input[name="employeeId"]').value = Utils.generateEmployeeId();
         Utils.showModal('add-employee-modal');
     }
 
-    async handleAddEmployee(event) {
-        event.preventDefault();
+    async handleAddEmployee(e) {
+        e.preventDefault();
         
-        const formData = new FormData(event.target);
-        const submitBtn = event.target.querySelector('button[type="submit"]');
-        
+        const formData = new FormData(e.target);
+        const employeeData = {
+            firstName: formData.get('firstName'),
+            lastName: formData.get('lastName'),
+            email: formData.get('email').toLowerCase(),
+            employeeId: formData.get('employeeId'),
+            department: formData.get('department'),
+            position: formData.get('position'),
+            manager: formData.get('manager'),
+            startDate: formData.get('startDate'),
+            password: CryptoJS.SHA256(formData.get('password')).toString(),
+            isActive: true,
+            leaveBalances: {
+                vacation: 20,
+                sick: 10,
+                personal: 5,
+                maternity: 90,
+                paternity: 15
+            },
+            createdAt: firebase.firestore.Timestamp.now(),
+            updatedAt: firebase.firestore.Timestamp.now()
+        };
+
         try {
-            const originalText = Utils.showLoading(submitBtn);
-            
-            const employeeData = {
-                firstName: formData.get('firstName'),
-                lastName: formData.get('lastName'),
-                email: formData.get('email').toLowerCase(),
-                employeeId: formData.get('employeeId'),
-                department: formData.get('department'),
-                position: formData.get('position'),
-                manager: formData.get('manager'),
-                startDate: formData.get('startDate'),
-                password: CryptoJS.SHA256(formData.get('password')).toString(),
-                isActive: true,
-                isHR: false,
-                leaveBalances: {
-                    vacation: 20,
-                    sick: 10,
-                    personal: 5,
-                    maternity: 90,
-                    paternity: 15
-                },
-                createdAt: firebase.firestore.Timestamp.now(),
-                updatedAt: firebase.firestore.Timestamp.now()
-            };
-
-            // Check if email already exists
-            const existingUser = await db.collection('users')
-                .where('email', '==', employeeData.email)
-                .get();
-
-            if (!existingUser.empty) {
-                throw new Error('An employee with this email already exists');
-            }
-
-            // Add employee to Firestore
             await db.collection('users').add(employeeData);
-
             Utils.showToast('Employee added successfully', 'success');
             Utils.hideModal('add-employee-modal');
-            event.target.reset();
-            
-            // Refresh employee list
+            e.target.reset();
             await this.loadEmployees();
-            this.applyFilters();
-            document.getElementById('employees-table-container').innerHTML = this.renderEmployeesTable();
-
+            this.renderEmployeesPage();
         } catch (error) {
             console.error('Error adding employee:', error);
-            Utils.showToast(error.message, 'error');
-        } finally {
-            Utils.hideLoading(submitBtn, 'Add Employee');
+            Utils.showToast('Failed to add employee', 'error');
         }
     }
 
     async editEmployee(employeeId) {
-        const employee = this.employees.find(emp => emp.id === employeeId);
+        const employee = this.employees.find(e => e.id === employeeId);
         if (!employee) return;
 
         // Populate edit form
-        document.getElementById('edit-employee-id').value = employee.id;
-        document.getElementById('edit-firstName').value = employee.firstName;
-        document.getElementById('edit-lastName').value = employee.lastName;
-        document.getElementById('edit-email').value = employee.email;
-        document.getElementById('edit-department').value = employee.department || '';
-        document.getElementById('edit-position').value = employee.position || '';
-        document.getElementById('edit-manager').value = employee.manager || '';
-        document.getElementById('edit-isActive').value = employee.isActive !== false ? 'true' : 'false';
+        const editForm = document.getElementById('edit-employee-form');
+        editForm.innerHTML = `
+            <input type="hidden" name="employeeId" value="${employee.id}">
+            <div class="form-group">
+                <label class="form-label">First Name</label>
+                <input type="text" class="form-control" name="firstName" value="${employee.firstName}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Last Name</label>
+                <input type="text" class="form-control" name="lastName" value="${employee.lastName}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" name="email" value="${employee.email}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Employee ID</label>
+                <input type="text" class="form-control" name="employeeId" value="${employee.employeeId || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Department</label>
+                <select class="form-select" name="department" required>
+                    <option value="">Select Department</option>
+                    <option value="HR" ${employee.department === 'HR' ? 'selected' : ''}>Human Resources</option>
+                    <option value="IT" ${employee.department === 'IT' ? 'selected' : ''}>Information Technology</option>
+                    <option value="Finance" ${employee.department === 'Finance' ? 'selected' : ''}>Finance</option>
+                    <option value="Marketing" ${employee.department === 'Marketing' ? 'selected' : ''}>Marketing</option>
+                    <option value="Sales" ${employee.department === 'Sales' ? 'selected' : ''}>Sales</option>
+                    <option value="Operations" ${employee.department === 'Operations' ? 'selected' : ''}>Operations</option>
+                    <option value="Legal" ${employee.department === 'Legal' ? 'selected' : ''}>Legal</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Position</label>
+                <input type="text" class="form-control" name="position" value="${employee.position || ''}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Manager</label>
+                <input type="text" class="form-control" name="manager" value="${employee.manager || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Start Date</label>
+                <input type="date" class="form-control" name="startDate" value="${employee.startDate || ''}" required>
+            </div>
+        `;
 
         Utils.showModal('edit-employee-modal');
     }
 
-    async handleEditEmployee(event) {
-        event.preventDefault();
+    async handleEditEmployee(e) {
+        e.preventDefault();
         
-        const formData = new FormData(event.target);
-        const submitBtn = event.target.querySelector('button[type="submit"]');
+        const formData = new FormData(e.target);
+        const employeeId = formData.get('employeeId');
         
+        const updateData = {
+            firstName: formData.get('firstName'),
+            lastName: formData.get('lastName'),
+            email: formData.get('email').toLowerCase(),
+            employeeId: formData.get('employeeId'),
+            department: formData.get('department'),
+            position: formData.get('position'),
+            manager: formData.get('manager'),
+            startDate: formData.get('startDate'),
+            updatedAt: firebase.firestore.Timestamp.now()
+        };
+
         try {
-            const originalText = Utils.showLoading(submitBtn);
-            
-            const employeeId = formData.get('employeeId');
-            const updateData = {
-                firstName: formData.get('firstName'),
-                lastName: formData.get('lastName'),
-                email: formData.get('email').toLowerCase(),
-                department: formData.get('department'),
-                position: formData.get('position'),
-                manager: formData.get('manager'),
-                isActive: formData.get('isActive') === 'true',
-                updatedAt: firebase.firestore.Timestamp.now()
-            };
-
             await db.collection('users').doc(employeeId).update(updateData);
-
             Utils.showToast('Employee updated successfully', 'success');
             Utils.hideModal('edit-employee-modal');
-            
-            // Refresh employee list
             await this.loadEmployees();
-            this.applyFilters();
-            document.getElementById('employees-table-container').innerHTML = this.renderEmployeesTable();
-
+            this.renderEmployeesPage();
         } catch (error) {
             console.error('Error updating employee:', error);
             Utils.showToast('Failed to update employee', 'error');
-        } finally {
-            Utils.hideLoading(submitBtn, 'Update Employee');
         }
     }
 
-    async resetPassword(employeeId) {
-        if (!confirm('Reset password to default (BPN123456)?')) return;
-
-        try {
-            const defaultPassword = CryptoJS.SHA256('BPN123456').toString();
-            
-            await db.collection('users').doc(employeeId).update({
-                password: defaultPassword,
-                updatedAt: firebase.firestore.Timestamp.now()
-            });
-
-            Utils.showToast('Password reset successfully', 'success');
-        } catch (error) {
-            console.error('Error resetting password:', error);
-            Utils.showToast('Failed to reset password', 'error');
-        }
-    }
-
-    async toggleEmployeeStatus(employeeId, currentStatus) {
-        const action = currentStatus ? 'deactivate' : 'activate';
-        if (!confirm(`Are you sure you want to ${action} this employee?`)) return;
+    async deactivateEmployee(employeeId) {
+        if (!confirm('Are you sure you want to deactivate this employee?')) return;
 
         try {
             await db.collection('users').doc(employeeId).update({
-                isActive: !currentStatus,
+                isActive: false,
                 updatedAt: firebase.firestore.Timestamp.now()
             });
-
-            Utils.showToast(`Employee ${action}d successfully`, 'success');
-            
-            // Refresh employee list
+            Utils.showToast('Employee deactivated successfully', 'success');
             await this.loadEmployees();
-            this.applyFilters();
-            document.getElementById('employees-table-container').innerHTML = this.renderEmployeesTable();
-
+            this.renderEmployeesPage();
         } catch (error) {
-            console.error('Error updating employee status:', error);
-            Utils.showToast('Failed to update employee status', 'error');
+            console.error('Error deactivating employee:', error);
+            Utils.showToast('Failed to deactivate employee', 'error');
         }
     }
 
-    exportEmployees() {
-        if (this.filteredEmployees.length === 0) {
-            Utils.showToast('No employees to export', 'warning');
-            return;
+    async activateEmployee(employeeId) {
+        try {
+            await db.collection('users').doc(employeeId).update({
+                isActive: true,
+                updatedAt: firebase.firestore.Timestamp.now()
+            });
+            Utils.showToast('Employee activated successfully', 'success');
+            await this.loadEmployees();
+            this.renderEmployeesPage();
+        } catch (error) {
+            console.error('Error activating employee:', error);
+            Utils.showToast('Failed to activate employee', 'error');
         }
-
-        const exportData = this.filteredEmployees.map(employee => ({
-            'Employee ID': employee.employeeId || '',
-            'First Name': employee.firstName,
-            'Last Name': employee.lastName,
-            'Email': employee.email,
-            'Department': employee.department || '',
-            'Position': employee.position || '',
-            'Manager': employee.manager || '',
-            'Start Date': Utils.formatDate(employee.startDate),
-            'Status': employee.isActive !== false ? 'Active' : 'Inactive'
-        }));
-
-        Utils.exportToCSV(exportData, `employees_${Utils.formatDate(new Date())}.csv`);
     }
 
-    destroy() {
-        if (this.realTimeListener) {
-            this.realTimeListener();
-        }
+    viewLeaveBalance(employeeId) {
+        const employee = this.employees.find(e => e.id === employeeId);
+        if (!employee) return;
+
+        const balances = employee.leaveBalances || {};
+        alert(`Leave Balances for ${employee.firstName} ${employee.lastName}:
+        
+Vacation: ${balances.vacation || 0} days
+Sick: ${balances.sick || 0} days
+Personal: ${balances.personal || 0} days
+Maternity: ${balances.maternity || 0} days
+Paternity: ${balances.paternity || 0} days`);
+    }
+
+    startRealTimeUpdates() {
+        db.collection('users').onSnapshot(() => {
+            this.loadEmployees().then(() => {
+                this.renderEmployeesPage();
+            });
+        });
     }
 }
+
+// Global controller instance
+window.employeesController = new EmployeesController();
