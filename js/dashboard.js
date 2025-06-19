@@ -25,28 +25,47 @@ class DashboardController {
                 console.log('No user logged in');
                 this.leaveRequests = [];
                 this.leaveBalances = {};
+                this.calculateStats();
                 return;
             }
 
-            console.log('Loading dashboard data for user:', user.email);
+            console.log('Loading dashboard data for user:', user.email, 'User ID:', user.id);
+
+            // Initialize arrays and objects
+            this.leaveRequests = [];
+            this.leaveBalances = {};
+
+            // Check and create sample data if needed (for first time users)
+            const sampleDataManager = new SampleDataManager();
+            await sampleDataManager.checkAndCreateSampleData();
 
             // Load leave requests directly from Firestore
             try {
+                console.log('Querying leave requests for user ID:', user.id);
                 const leaveRequestsSnapshot = await db.collection('leave_requests')
                     .where('userId', '==', user.id)
                     .orderBy('createdAt', 'desc')
-                    .limit(20)
                     .get();
 
-                this.leaveRequests = leaveRequestsSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data(),
-                    startDate: doc.data().startDate?.toDate(),
-                    endDate: doc.data().endDate?.toDate(),
-                    createdAt: doc.data().createdAt?.toDate()
-                }));
+                console.log('Found documents:', leaveRequestsSnapshot.docs.length);
 
-                console.log('Loaded leave requests:', this.leaveRequests.length);
+                this.leaveRequests = leaveRequestsSnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    console.log('Processing leave request:', doc.id, data);
+                    return {
+                        id: doc.id,
+                        ...data,
+                        startDate: data.startDate?.toDate(),
+                        endDate: data.endDate?.toDate(),
+                        createdAt: data.createdAt?.toDate(),
+                        approvedAt: data.approvedAt?.toDate(),
+                        rejectedAt: data.rejectedAt?.toDate(),
+                        cancelledAt: data.cancelledAt?.toDate()
+                    };
+                });
+
+                console.log('Processed leave requests:', this.leaveRequests.length);
+                console.log('Leave requests data:', this.leaveRequests);
             } catch (error) {
                 console.error('Error loading leave requests:', error);
                 this.leaveRequests = [];
@@ -54,36 +73,65 @@ class DashboardController {
 
             // Load user data for balances
             try {
+                console.log('Loading user document for ID:', user.id);
                 const userDoc = await db.collection('users').doc(user.id).get();
                 if (userDoc.exists) {
-                    this.leaveBalances = userDoc.data().leaveBalances || {};
-                    console.log('Loaded leave balances:', this.leaveBalances);
+                    const userData = userDoc.data();
+                    this.leaveBalances = userData.leaveBalances || {};
+                    console.log('Loaded leave balances from Firestore:', this.leaveBalances);
                 } else {
-                    console.log('User document not found in Firestore');
-                    this.leaveBalances = user.leaveBalances || {};
+                    console.log('User document not found in Firestore, using local data');
+                    this.leaveBalances = user.leaveBalances || {
+                        vacation: 20,
+                        sick: 10,
+                        personal: 5,
+                        maternity: 90,
+                        paternity: 15
+                    };
                 }
             } catch (error) {
                 console.error('Error loading user data:', error);
-                this.leaveBalances = user.leaveBalances || {};
+                this.leaveBalances = user.leaveBalances || {
+                    vacation: 20,
+                    sick: 10,
+                    personal: 5,
+                    maternity: 90,
+                    paternity: 15
+                };
             }
 
             // Calculate stats
             this.calculateStats();
+            console.log('Calculated stats:', this.stats);
 
         } catch (error) {
             console.error('Error in loadData:', error);
             // Set default values to prevent dashboard from breaking
             this.leaveRequests = [];
-            this.leaveBalances = {};
+            this.leaveBalances = {
+                vacation: 20,
+                sick: 10,
+                personal: 5,
+                maternity: 90,
+                paternity: 15
+            };
             this.calculateStats();
         }
     }
 
     calculateStats() {
+        console.log('Calculating stats with requests:', this.leaveRequests.length);
+        console.log('Leave balances:', this.leaveBalances);
+        
         const currentYear = new Date().getFullYear();
-        const thisYearRequests = this.leaveRequests.filter(request => 
-            request.startDate && request.startDate.getFullYear() === currentYear
-        );
+        const thisYearRequests = this.leaveRequests.filter(request => {
+            if (!request.startDate) return false;
+            const requestYear = request.startDate.getFullYear();
+            console.log('Request year:', requestYear, 'Current year:', currentYear);
+            return requestYear === currentYear;
+        });
+
+        console.log('This year requests:', thisYearRequests.length);
 
         this.stats = {
             totalRequests: thisYearRequests.length,
@@ -93,8 +141,10 @@ class DashboardController {
             totalDaysUsed: thisYearRequests
                 .filter(r => r.status === 'approved')
                 .reduce((total, request) => total + (request.days || 0), 0),
-            totalDaysRemaining: Object.values(this.leaveBalances).reduce((total, balance) => total + balance, 0)
+            totalDaysRemaining: Object.values(this.leaveBalances || {}).reduce((total, balance) => total + (balance || 0), 0)
         };
+
+        console.log('Final calculated stats:', this.stats);
     }
 
     renderDashboard() {

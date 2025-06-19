@@ -304,7 +304,7 @@ body {
 /* Dashboard Stats */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
 }
@@ -316,6 +316,12 @@ body {
     box-shadow: var(--box-shadow);
     text-align: center;
     border-left: 4px solid var(--primary-blue);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(27, 123, 156, 0.15);
 }
 
 .stat-icon {
@@ -329,6 +335,12 @@ body {
     font-weight: bold;
     color: var(--primary-blue);
     margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    color: var(--medium-grey);
+    font-size: 0.875rem;
+    font-weight: 500;
 }
 
 .stat-label {
