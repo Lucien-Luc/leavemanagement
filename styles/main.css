@@ -566,6 +566,114 @@ body {
     color: #721C24;
 }
 
+/* Calendar */
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--light-grey);
+}
+
+.calendar-nav {
+    display: flex;
+    align-items: center;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: var(--light-grey);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.calendar-day {
+    background: var(--white);
+    padding: 1rem;
+    min-height: 120px;
+    position: relative;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.calendar-day:hover {
+    background: var(--light-blue);
+}
+
+.calendar-day.other-month {
+    background: #F5F5F5;
+    color: var(--medium-grey);
+}
+
+.calendar-day.has-leave {
+    background: var(--light-blue);
+}
+
+.calendar-day.has-holiday {
+    background: #FFE6E6;
+}
+
+.calendar-day.today {
+    border: 2px solid var(--primary-blue);
+}
+
+.calendar-day-number {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.calendar-leave,
+.calendar-holiday {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
+    color: white;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.calendar-leave {
+    background: var(--primary-blue);
+}
+
+.calendar-holiday {
+    background: var(--danger);
+}
+
+/* View toggle buttons */
+.btn.active {
+    background: var(--primary-blue);
+    color: white;
+    border-color: var(--primary-blue);
+}
+
+/* File Upload */
+.file-upload {
+    border: 2px dashed var(--light-grey);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.file-upload:hover {
+    border-color: var(--primary-blue);
+    background: var(--light-blue);
+}
+
+.file-upload-icon {
+    font-size: 3rem;
+    color: var(--primary-blue);
+    margin-bottom: 1rem;
+}
+
 /* Page Layout */
 .page-container {
     max-width: 1400px;

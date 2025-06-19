@@ -1,41 +1,41 @@
-<div class="page-container">
-    <!-- Page Header -->
-    <div class="page-header">
-        <div class="header-content">
-            <h1><i class="fas fa-calendar"></i> Calendar</h1>
-            <p>View your leave requests and company holidays</p>
-        </div>
-        <div class="header-actions">
-            <div class="view-toggle">
-                <button id="month-view-btn" class="toggle-btn active">
-                    <i class="fas fa-calendar-alt"></i> Month View
-                </button>
-                <button id="list-view-btn" class="toggle-btn">
-                    <i class="fas fa-list"></i> List View
-                </button>
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 style="color: var(--primary-blue); margin: 0;">
+                    <i class="fas fa-calendar"></i> Calendar
+                </h2>
+                <div>
+                    <button id="month-view-btn" class="btn btn-outline active">
+                        <i class="fas fa-calendar-alt"></i> Month View
+                    </button>
+                    <button id="list-view-btn" class="btn btn-outline">
+                        <i class="fas fa-list"></i> List View
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Calendar View -->
-    <div id="calendar-view" class="calendar-section">
-        <div class="calendar-card">
-            <div class="calendar-controls">
+    <div id="calendar-view">
+        <div class="card">
+            <div class="calendar-header">
                 <div class="calendar-nav">
-                    <button id="prev-month" class="nav-btn">
+                    <button id="prev-month" class="btn btn-outline">
                         <i class="fas fa-chevron-left"></i>
                     </button>
-                    <h3 id="calendar-title"></h3>
-                    <button id="next-month" class="nav-btn">
+                    <h3 id="calendar-title" style="color: var(--primary-blue); margin: 0 2rem;"></h3>
+                    <button id="next-month" class="btn btn-outline">
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
-                <button id="today-btn" class="today-btn">
+                <button id="today-btn" class="btn btn-primary">
                     <i class="fas fa-calendar-day"></i> Today
                 </button>
             </div>
             
-            <div id="calendar-grid" class="modern-calendar-grid"></div>
+            <div id="calendar-grid" class="calendar-grid"></div>
         </div>
     </div>
 
