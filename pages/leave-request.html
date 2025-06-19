@@ -1,31 +1,36 @@
-<div class="container">
-    <div class="row">
-        <div class="col">
-            <h2 style="color: var(--primary-blue); margin-bottom: 2rem;">
-                <i class="fas fa-calendar-plus"></i> Leave Request
-            </h2>
+<div class="page-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-calendar-plus"></i> Request Leave</h1>
+            <p>Submit a new leave request or edit an existing one</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline" onclick="app.navigateTo('dashboard')">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </button>
         </div>
     </div>
     
     <!-- Editing Indicator -->
-    <div id="editing-indicator" class="card" style="display: none; background-color: var(--warning); color: var(--dark-grey); margin-bottom: 1.5rem;">
-        <div style="padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
+    <div id="editing-indicator" class="alert alert-warning" style="display: none;">
+        <div class="alert-content">
             <div>
                 <i class="fas fa-edit"></i>
                 <strong>Editing Mode:</strong> You are currently editing an existing leave request.
             </div>
-            <button id="cancel-edit-btn" class="btn btn-secondary">
+            <button id="cancel-edit-btn" class="btn btn-sm btn-secondary">
                 <i class="fas fa-times"></i> Cancel Edit
             </button>
         </div>
     </div>
     
-    <div class="row">
+    <div class="content-grid">
         <!-- Leave Request Form -->
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title">Request Leave</h4>
+        <div class="form-section">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-file-alt"></i> Leave Request Form</h3>
                 </div>
                 
                 <form id="leave-request-form">
@@ -101,35 +106,44 @@
         </div>
         
         <!-- Quick Info Sidebar -->
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title">Quick Info</h4>
+        <div class="sidebar-section">
+            <div class="info-card">
+                <div class="info-header">
+                    <h4><i class="fas fa-info-circle"></i> Leave Guidelines</h4>
                 </div>
-                <div style="padding: 1rem;">
-                    <h5 style="color: var(--primary-blue); margin-bottom: 1rem;">Leave Guidelines</h5>
-                    <ul style="padding-left: 1.5rem; color: var(--medium-grey);">
-                        <li>Submit requests at least 2 weeks in advance</li>
-                        <li>Sick leave may require medical documentation</li>
-                        <li>All requests require manager approval</li>
-                        <li>Check your leave balance before submitting</li>
+                <div class="info-content">
+                    <ul class="guidelines-list">
+                        <li><i class="fas fa-calendar-week"></i> Submit requests at least 2 weeks in advance</li>
+                        <li><i class="fas fa-file-medical"></i> Sick leave may require medical documentation</li>
+                        <li><i class="fas fa-user-check"></i> All requests require manager approval</li>
+                        <li><i class="fas fa-balance-scale"></i> Check your leave balance before submitting</li>
                     </ul>
-                    
-                    <h5 style="color: var(--primary-blue); margin-bottom: 1rem; margin-top: 2rem;">Contact HR</h5>
-                    <p style="color: var(--medium-grey); font-size: 0.875rem;">
-                        For questions about leave policies or urgent requests, contact HR at:
-                        <br><strong>hr@bpn.com</strong>
-                        <br><strong>+1 (555) 123-4567</strong>
-                    </p>
+                </div>
+            </div>
+            
+            <div class="info-card">
+                <div class="info-header">
+                    <h4><i class="fas fa-headset"></i> Contact HR</h4>
+                </div>
+                <div class="info-content">
+                    <p>For questions about leave policies or urgent requests:</p>
+                    <div class="contact-info">
+                        <div class="contact-item">
+                            <i class="fas fa-envelope"></i>
+                            <span>hr@bpn.com</span>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fas fa-phone"></i>
+                            <span>+1 (555) 123-4567</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     
     <!-- Leave History -->
-    <div class="row">
-        <div class="col">
-            <div id="leave-history"></div>
-        </div>
+    <div class="history-section">
+        <div id="leave-history"></div>
     </div>
 </div>

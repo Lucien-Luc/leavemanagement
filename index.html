@@ -16,30 +16,40 @@
 <body>
     <div id="app-container">
         <!-- Navigation -->
-        <nav id="main-nav" class="navbar" style="display: none;">
+        <nav id="main-nav" class="modern-navbar" style="display: none;">
             <div class="nav-container">
                 <div class="nav-brand">
-                    <img src="assets/logo.png" alt="BPN Logo" style="height: 40px; margin-right: 1rem;">
-                    <h2>BPN Leave Management</h2>
+                    <img src="assets/logo.png" alt="BPN Logo" class="brand-logo">
+                    <div class="brand-text">
+                        <h2>BPN</h2>
+                        <span>Leave Management</span>
+                    </div>
                 </div>
                 <div class="nav-menu">
                     <a href="#" class="nav-link" data-page="dashboard">
-                        <i class="fas fa-home"></i> Dashboard
+                        <i class="fas fa-home"></i>
+                        <span>Dashboard</span>
                     </a>
                     <a href="#" class="nav-link" data-page="leave-request">
-                        <i class="fas fa-calendar-plus"></i> Request Leave
+                        <i class="fas fa-calendar-plus"></i>
+                        <span>Request Leave</span>
                     </a>
                     <a href="#" class="nav-link" data-page="calendar">
-                        <i class="fas fa-calendar"></i> Calendar
+                        <i class="fas fa-calendar"></i>
+                        <span>Calendar</span>
                     </a>
                     <a href="#" class="nav-link" data-page="profile">
-                        <i class="fas fa-user"></i> Profile
+                        <i class="fas fa-user"></i>
+                        <span>Profile</span>
                     </a>
                 </div>
                 <div class="nav-actions">
-                    <span id="user-name"></span>
-                    <button id="logout-btn" class="btn btn-outline">
-                        <i class="fas fa-sign-out-alt"></i> Logout
+                    <div class="user-info">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="user-name"></span>
+                    </div>
+                    <button id="logout-btn" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
                     </button>
                 </div>
             </div>
