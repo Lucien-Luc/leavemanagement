@@ -674,6 +674,38 @@ body {
     margin-bottom: 1rem;
 }
 
+/* Profile specific styles */
+.form-control[readonly] {
+    background-color: var(--light-grey);
+    border-color: #E9ECEF;
+}
+
+.form-control.editable {
+    background-color: var(--white);
+    border-color: var(--primary-blue);
+}
+
+.form-control.editable:focus {
+    box-shadow: 0 0 0 3px rgba(27, 123, 156, 0.1);
+}
+
+#profile-picture {
+    transition: var(--transition);
+}
+
+#profile-picture:hover {
+    opacity: 0.8;
+}
+
+#upload-picture-btn {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.card .form-text {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+}
+
 /* Page Layout */
 .page-container {
     max-width: 1400px;

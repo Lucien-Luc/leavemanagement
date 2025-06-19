@@ -226,10 +226,21 @@ class ProfileController {
             // Show upload progress
             Utils.showToast('Uploading profile picture...', 'info');
             
-            const downloadURL = await Utils.uploadFile(file, fileName);
+            // Upload to Firebase Storage
+            const storageRef = storage.ref(fileName);
+            const uploadTask = await storageRef.put(file);
+            const downloadURL = await uploadTask.ref.getDownloadURL();
             
             // Update user profile with new picture URL
-            await authService.updateProfile({ profilePicture: downloadURL });
+            const user = authService.getCurrentUser();
+            await db.collection('users').doc(user.id).update({
+                profilePicture: downloadURL,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Update local user data
+            user.profilePicture = downloadURL;
+            authService.updateUserSession(user);
             
             // Update profile picture in UI
             const profilePicture = document.getElementById('profile-picture');
