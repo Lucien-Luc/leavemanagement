@@ -74,8 +74,8 @@ class App {
         document.getElementById('main-nav').style.display = 'block';
         
         // Update user name in nav
-        const user = authService.getCurrentUser();
-        document.getElementById('user-name').textContent = `${user.firstName} ${user.lastName}`;
+        const currentUser = authService.getCurrentUser();
+        document.getElementById('user-name').textContent = `${currentUser.firstName} ${currentUser.lastName}`;
 
         // Load dashboard by default
         await this.navigateTo('dashboard');
