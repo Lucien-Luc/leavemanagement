@@ -206,3 +206,6 @@ The application uses the following Firestore collections designed for easy HR in
 - June 19, 2025: Firebase integration completed with production keys
 - June 19, 2025: BPN branding and logo integration added
 - June 19, 2025: Database schema optimized for HR system integration
+- June 19, 2025: Added rejected leave requests section to dashboard
+- June 19, 2025: Updated dashboard to fetch data directly from Firestore without sample data dependency
+- June 19, 2025: Enhanced dashboard stats to include rejected requests counter

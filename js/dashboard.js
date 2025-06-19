@@ -8,10 +8,7 @@ class DashboardController {
 
     async init() {
         try {
-            // Check and create sample data if needed for testing
-            const sampleDataManager = new SampleDataManager();
-            await sampleDataManager.checkAndCreateSampleData();
-            
+            // Load data directly from Firestore without sample data dependency
             await this.loadData();
             this.renderDashboard();
             this.setupEventListeners();
@@ -33,12 +30,12 @@ class DashboardController {
 
             console.log('Loading dashboard data for user:', user.email);
 
-            // Load leave requests
+            // Load leave requests directly from Firestore
             try {
                 const leaveRequestsSnapshot = await db.collection('leave_requests')
                     .where('userId', '==', user.id)
                     .orderBy('createdAt', 'desc')
-                    .limit(10)
+                    .limit(20)
                     .get();
 
                 this.leaveRequests = leaveRequestsSnapshot.docs.map(doc => ({
@@ -92,6 +89,7 @@ class DashboardController {
             totalRequests: thisYearRequests.length,
             pendingRequests: thisYearRequests.filter(r => r.status === 'pending').length,
             approvedRequests: thisYearRequests.filter(r => r.status === 'approved').length,
+            rejectedRequests: thisYearRequests.filter(r => r.status === 'rejected').length,
             totalDaysUsed: thisYearRequests
                 .filter(r => r.status === 'approved')
                 .reduce((total, request) => total + (request.days || 0), 0),
@@ -103,6 +101,7 @@ class DashboardController {
         this.renderStats();
         this.renderLeaveBalances();
         this.renderRecentRequests();
+        this.renderRejectedRequests();
         this.renderUpcomingLeaves();
     }
 
@@ -131,6 +130,13 @@ class DashboardController {
                 </div>
                 <div class="stat-value">${this.stats.approvedRequests}</div>
                 <div class="stat-label">Approved Requests</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="stat-value">${this.stats.rejectedRequests}</div>
+                <div class="stat-label">Rejected Requests</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon">
@@ -232,6 +238,61 @@ class DashboardController {
                         </tbody>
                     </table>
                 </div>
+            </div>
+        `;
+    }
+
+    renderRejectedRequests() {
+        const rejectedContainer = document.getElementById('rejected-requests');
+        if (!rejectedContainer) return;
+
+        const rejectedRequests = this.leaveRequests.filter(request => 
+            request.status === 'rejected'
+        ).slice(0, 3);
+
+        if (rejectedRequests.length === 0) {
+            rejectedContainer.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Recent Rejected Requests</h4>
+                    </div>
+                    <div class="text-center" style="padding: 2rem;">
+                        <i class="fas fa-times-circle" style="font-size: 3rem; color: var(--medium-grey); margin-bottom: 1rem;"></i>
+                        <p>No rejected requests</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        const rejectedItems = rejectedRequests.map(request => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid var(--light-grey);">
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; color: #dc3545;">
+                        ${Utils.capitalize(request.leaveType)} Leave
+                    </div>
+                    <div style="color: var(--medium-grey); font-size: 0.875rem;">
+                        ${Utils.formatDate(request.startDate)} - ${Utils.formatDate(request.endDate)} (${request.days} days)
+                    </div>
+                    ${request.rejectionReason ? `
+                        <div style="background: #f8f9fa; padding: 0.5rem; margin-top: 0.5rem; border-radius: 4px; font-size: 0.875rem;">
+                            <strong>Reason:</strong> ${request.rejectionReason}
+                        </div>
+                    ` : ''}
+                </div>
+                <div style="text-align: right; color: var(--medium-grey); font-size: 0.875rem;">
+                    <div>Rejected by:</div>
+                    <div style="font-weight: 600;">${request.rejectedBy || 'HR'}</div>
+                </div>
+            </div>
+        `).join('');
+
+        rejectedContainer.innerHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Recent Rejected Requests</h4>
+                </div>
+                ${rejectedItems}
             </div>
         `;
     }
