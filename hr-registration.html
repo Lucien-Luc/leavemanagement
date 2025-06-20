@@ -91,6 +91,7 @@
     <!-- Scripts -->
     <script src="js/firebase-config.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
     
     <script>
         class HRRegistration {
@@ -196,31 +197,21 @@
                     // Hash password
                     const hashedPassword = CryptoJS.SHA256(password).toString();
 
-                    // Create HR user
-                    const hrUser = {
-                        email: formData.get('email').toLowerCase(),
-                        password: hashedPassword,
+                    // Use the existing auth service with HR role
+                    const authService = new AuthService();
+                    const hrData = {
+                        email: formData.get('email'),
+                        password: password,
                         firstName: formData.get('firstName'),
                         lastName: formData.get('lastName'),
                         employeeId: formData.get('employeeId') || 'HR001',
-                        department: 'HR',
                         position: 'HR Administrator',
-                        role: 'hr',
-                        startDate: formData.get('startDate') || new Date().toISOString().split('T')[0],
-                        leaveBalances: {
-                            vacation: 30,
-                            sick: 15,
-                            personal: 10,
-                            maternity: 90,
-                            paternity: 15
-                        },
-                        isActive: true,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        startDate: formData.get('startDate'),
+                        role: 'hr' // This tells the auth service this is HR registration
                     };
 
                     console.log('Creating HR user...');
-                    await db.collection('users').add(hrUser);
+                    await authService.register(hrData);
 
                     Utils.showToast('HR account created successfully!', 'success');
                     

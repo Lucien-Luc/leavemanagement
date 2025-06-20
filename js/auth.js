@@ -48,20 +48,25 @@ class AuthService {
             // Hash password
             const hashedPassword = CryptoJS.SHA256(userData.password).toString();
 
-            // Validate manager selection
-            if (!userData.manager) {
-                throw new Error('Manager selection is required');
-            }
+            // Check if this is HR registration (special case)
+            const isHRRegistration = userData.role === 'hr';
+            
+            if (!isHRRegistration) {
+                // Validate manager selection for regular employees
+                if (!userData.manager) {
+                    throw new Error('Manager selection is required');
+                }
 
-            // Get manager information to determine department
-            const managerDoc = await db.collection('users').doc(userData.manager).get();
-            if (!managerDoc.exists) {
-                throw new Error('Selected manager not found');
-            }
+                // Get manager information to determine department
+                const managerDoc = await db.collection('users').doc(userData.manager).get();
+                if (!managerDoc.exists) {
+                    throw new Error('Selected manager not found');
+                }
 
-            const managerData = managerDoc.data();
-            if (managerData.role !== 'manager' || !managerData.isActive) {
-                throw new Error('Selected user is not an active manager');
+                const managerData = managerDoc.data();
+                if (managerData.role !== 'manager' || !managerData.isActive) {
+                    throw new Error('Selected user is not an active manager');
+                }
             }
 
             // Create user document
@@ -71,19 +76,19 @@ class AuthService {
                 firstName: userData.firstName,
                 lastName: userData.lastName,
                 employeeId: userData.employeeId || '',
-                department: managerData.department, // Auto-assign based on manager
+                department: isHRRegistration ? 'HR' : (managerData?.department || ''),
                 position: userData.position || '',
-                managerId: userData.manager,
+                managerId: isHRRegistration ? null : userData.manager,
                 startDate: userData.startDate || new Date().toISOString().split('T')[0],
-                role: 'employee',
+                role: isHRRegistration ? 'hr' : 'employee',
                 leaveBalances: {
-                    vacation: 25,
-                    sick: 12,
-                    personal: 8,
+                    vacation: isHRRegistration ? 30 : 25,
+                    sick: isHRRegistration ? 15 : 12,
+                    personal: isHRRegistration ? 10 : 8,
                     maternity: 90,
                     paternity: 15
                 },
-                isActive: true, // Automatically active as per requirement
+                isActive: true,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
@@ -92,19 +97,21 @@ class AuthService {
             const docRef = await db.collection('users').add(newUser);
             console.log('User created with ID:', docRef.id);
             
-            // Create employee approval request for manager
-            await db.collection('employee_requests').add({
-                userId: docRef.id,
-                managerId: userData.manager,
-                firstName: userData.firstName,
-                lastName: userData.lastName,
-                email: userData.email.toLowerCase(),
-                employeeId: userData.employeeId || '',
-                position: userData.position || '',
-                startDate: userData.startDate || new Date().toISOString().split('T')[0],
-                status: 'pending',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            // Create employee approval request for manager (only for regular employees)
+            if (!isHRRegistration && userData.manager) {
+                await db.collection('employee_requests').add({
+                    userId: docRef.id,
+                    managerId: userData.manager,
+                    firstName: userData.firstName,
+                    lastName: userData.lastName,
+                    email: userData.email.toLowerCase(),
+                    employeeId: userData.employeeId || '',
+                    position: userData.position || '',
+                    startDate: userData.startDate || new Date().toISOString().split('T')[0],
+                    status: 'pending',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
             
             // Remove password from user object for session
             const userForSession = { ...newUser, id: docRef.id };
