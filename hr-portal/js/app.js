@@ -110,6 +110,7 @@ class HRApp {
                     }
                     break;
                 case 'departments':
+                    await this.loadPage('pages/departments.html');
                     if (window.departmentsController) {
                         await window.departmentsController.init();
                     }

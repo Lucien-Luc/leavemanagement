@@ -169,15 +169,18 @@ class EmployeesController {
                         <tr>
                             <th>Employee</th>
                             <th>Employee ID</th>
+                            <th>Role</th>
                             <th>Department</th>
                             <th>Position</th>
-                            <th>Start Date</th>
+                            <th>Manager</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${this.filteredEmployees.map(employee => `
+                        ${this.filteredEmployees.map(employee => {
+                            const manager = this.managers.find(m => m.id === employee.managerId);
+                            return `
                             <tr>
                                 <td>
                                     <div>
@@ -187,10 +190,13 @@ class EmployeesController {
                                 </td>
                                 <td>${employee.employeeId || 'N/A'}</td>
                                 <td>
+                                    <span class="badge ${employee.role === 'manager' ? 'badge-success' : 'badge-primary'}">${employee.role === 'manager' ? 'Manager' : 'Employee'}</span>
+                                </td>
+                                <td>
                                     <span class="badge badge-info">${employee.department || 'N/A'}</span>
                                 </td>
                                 <td>${employee.position || 'N/A'}</td>
-                                <td>${Utils.formatDate(employee.startDate) || 'N/A'}</td>
+                                <td>${manager ? `${manager.firstName} ${manager.lastName}` : (employee.role === 'manager' ? 'N/A' : 'No Manager')}</td>
                                 <td>${Utils.getStatusBadge(employee.isActive === false ? 'inactive' : 'active')}</td>
                                 <td>
                                     <button class="btn btn-outline btn-sm" onclick="employeesController.editEmployee('${employee.id}')">
@@ -210,7 +216,8 @@ class EmployeesController {
                                     `}
                                 </td>
                             </tr>
-                        `).join('')}
+                        `; 
+                        }).join('')}
                     </tbody>
                 </table>
             </div>
@@ -255,8 +262,15 @@ class EmployeesController {
                                 <input type="text" class="form-control" name="position" required>
                             </div>
                             <div class="form-group">
+                                <label class="form-label">Role</label>
+                                <select class="form-select" name="role" id="hr-role-select" required>
+                                    <option value="employee">Employee</option>
+                                    <option value="manager">Manager</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="manager-selection-group">
                                 <label class="form-label">Manager</label>
-                                <select class="form-select" name="manager" id="hr-manager-select" required>
+                                <select class="form-select" name="manager" id="hr-manager-select">
                                     <option value="">Select Manager</option>
                                     ${this.managers.map(manager => `
                                         <option value="${manager.id}">${manager.firstName} ${manager.lastName} (${manager.department})</option>
@@ -339,6 +353,12 @@ class EmployeesController {
             editForm.addEventListener('submit', (e) => this.handleEditEmployee(e));
         }
 
+        // Role selection change handler
+        const roleSelect = document.getElementById('hr-role-select');
+        if (roleSelect) {
+            roleSelect.addEventListener('change', (e) => this.handleRoleChange(e));
+        }
+
         // Setup modal close functionality
         Utils.setupModalClose('add-employee-modal');
         Utils.setupModalClose('edit-employee-modal');
@@ -378,8 +398,34 @@ class EmployeesController {
         this.filteredEmployees = filtered;
     }
 
+    handleRoleChange(e) {
+        const role = e.target.value;
+        const managerGroup = document.getElementById('manager-selection-group');
+        const managerSelect = document.getElementById('hr-manager-select');
+        
+        if (role === 'manager') {
+            // Hide manager selection for manager role
+            managerGroup.style.display = 'none';
+            managerSelect.removeAttribute('required');
+            managerSelect.value = '';
+        } else {
+            // Show manager selection for employee role
+            managerGroup.style.display = 'block';
+            managerSelect.setAttribute('required', 'required');
+        }
+    }
+
     showAddEmployeeModal() {
         Utils.showModal('add-employee-modal');
+        // Reset role selection to show manager field by default
+        setTimeout(() => {
+            const roleSelect = document.getElementById('hr-role-select');
+            const managerGroup = document.getElementById('manager-selection-group');
+            if (roleSelect && managerGroup) {
+                roleSelect.value = 'employee';
+                managerGroup.style.display = 'block';
+            }
+        }, 100);
     }
 
     async handleAddEmployee(e) {
@@ -400,14 +446,22 @@ class EmployeesController {
                 throw new Error('User with this email already exists');
             }
             
-            // Get manager info to set department
+            const selectedRole = formData.get('role');
             const managerId = formData.get('manager');
             let managerDepartment = '';
             
-            if (managerId) {
+            // Get department info
+            if (managerId && selectedRole === 'employee') {
                 const managerDoc = await db.collection('users').doc(managerId).get();
                 if (managerDoc.exists) {
                     managerDepartment = managerDoc.data().department;
+                }
+            } else if (selectedRole === 'manager') {
+                // For managers, use the selected department directly
+                const selectedDeptId = formData.get('department');
+                const deptDoc = await db.collection('departments').doc(selectedDeptId).get();
+                if (deptDoc.exists) {
+                    managerDepartment = deptDoc.data().id || deptDoc.data().code;
                 }
             }
             
@@ -419,14 +473,14 @@ class EmployeesController {
                 employeeId: formData.get('employeeId'),
                 department: managerDepartment || formData.get('department'),
                 position: formData.get('position'),
-                managerId: managerId || null,
+                managerId: selectedRole === 'employee' ? (managerId || null) : null,
                 startDate: formData.get('startDate') || new Date().toISOString().split('T')[0],
-                role: 'employee',
+                role: selectedRole,
                 isActive: true,
                 leaveBalances: {
-                    vacation: 25,
-                    sick: 12,
-                    personal: 8,
+                    vacation: selectedRole === 'manager' ? 30 : 25,
+                    sick: selectedRole === 'manager' ? 15 : 12,
+                    personal: selectedRole === 'manager' ? 10 : 8,
                     maternity: 90,
                     paternity: 15
                 },
@@ -473,35 +527,67 @@ class EmployeesController {
                 <input type="email" class="form-control" name="email" value="${employee.email}" required>
             </div>
             <div class="form-group">
-                <label class="form-label">Employee ID</label>
-                <input type="text" class="form-control" name="employeeId" value="${employee.employeeId || ''}">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Department</label>
-                <select class="form-select" name="department" required>
-                    <option value="">Select Department</option>
-                    <option value="HR" ${employee.department === 'HR' ? 'selected' : ''}>Human Resources</option>
-                    <option value="IT" ${employee.department === 'IT' ? 'selected' : ''}>Information Technology</option>
-                    <option value="Finance" ${employee.department === 'Finance' ? 'selected' : ''}>Finance</option>
-                    <option value="Marketing" ${employee.department === 'Marketing' ? 'selected' : ''}>Marketing</option>
-                    <option value="Sales" ${employee.department === 'Sales' ? 'selected' : ''}>Sales</option>
-                    <option value="Operations" ${employee.department === 'Operations' ? 'selected' : ''}>Operations</option>
-                    <option value="Legal" ${employee.department === 'Legal' ? 'selected' : ''}>Legal</option>
-                </select>
-            </div>
-            <div class="form-group">
                 <label class="form-label">Position</label>
                 <input type="text" class="form-control" name="position" value="${employee.position || ''}" required>
             </div>
             <div class="form-group">
+                <label class="form-label">Role</label>
+                <select class="form-select" name="role" id="edit-role-select" required>
+                    <option value="employee" ${employee.role === 'employee' ? 'selected' : ''}>Employee</option>
+                    <option value="manager" ${employee.role === 'manager' ? 'selected' : ''}>Manager</option>
+                </select>
+            </div>
+            <div class="form-group" id="edit-manager-group" style="display: ${employee.role === 'manager' ? 'none' : 'block'}">
                 <label class="form-label">Manager</label>
-                <input type="text" class="form-control" name="manager" value="${employee.manager || ''}">
+                <select class="form-select" name="manager" id="edit-manager-select" ${employee.role === 'employee' ? 'required' : ''}>
+                    <option value="">Select Manager</option>
+                    ${this.managers.map(manager => `
+                        <option value="${manager.id}" ${employee.managerId === manager.id ? 'selected' : ''}>
+                            ${manager.firstName} ${manager.lastName} (${manager.department})
+                        </option>
+                    `).join('')}
+                </select>
             </div>
             <div class="form-group">
-                <label class="form-label">Start Date</label>
-                <input type="date" class="form-control" name="startDate" value="${employee.startDate || ''}" required>
+                <label class="form-label">Department</label>
+                <select class="form-select" name="department" id="edit-dept-select" required>
+                    <option value="">Select Department</option>
+                    ${this.departments.map(dept => `
+                        <option value="${dept.id}" ${employee.department === dept.id ? 'selected' : ''}>
+                            ${dept.name}
+                        </option>
+                    `).join('')}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="isActive" required>
+                    <option value="true" ${employee.isActive !== false ? 'selected' : ''}>Active</option>
+                    <option value="false" ${employee.isActive === false ? 'selected' : ''}>Inactive</option>
+                </select>
             </div>
         `;
+
+        // Setup role change handler for edit form
+        setTimeout(() => {
+            const editRoleSelect = document.getElementById('edit-role-select');
+            if (editRoleSelect) {
+                editRoleSelect.addEventListener('change', (e) => {
+                    const role = e.target.value;
+                    const managerGroup = document.getElementById('edit-manager-group');
+                    const managerSelect = document.getElementById('edit-manager-select');
+                    
+                    if (role === 'manager') {
+                        managerGroup.style.display = 'none';
+                        managerSelect.removeAttribute('required');
+                        managerSelect.value = '';
+                    } else {
+                        managerGroup.style.display = 'block';
+                        managerSelect.setAttribute('required', 'required');
+                    }
+                });
+            }
+        }, 100);
 
         Utils.showModal('edit-employee-modal');
     }
@@ -511,28 +597,100 @@ class EmployeesController {
         
         const formData = new FormData(e.target);
         const employeeId = formData.get('employeeId');
+        const submitBtn = e.target.querySelector('button[type="submit"]');
         
-        const updateData = {
-            firstName: formData.get('firstName'),
-            lastName: formData.get('lastName'),
-            email: formData.get('email').toLowerCase(),
-            employeeId: formData.get('employeeId'),
-            department: formData.get('department'),
-            position: formData.get('position'),
-            manager: formData.get('manager'),
-            startDate: formData.get('startDate'),
-            updatedAt: firebase.firestore.Timestamp.now()
-        };
-
         try {
+            const originalText = Utils.showLoading(submitBtn);
+            
+            const selectedRole = formData.get('role');
+            const managerId = formData.get('manager');
+            let departmentToAssign = formData.get('department');
+            
+            // If changing to manager role and selecting a department, use that department
+            // If employee role, use manager's department if manager selected
+            if (selectedRole === 'employee' && managerId) {
+                const managerDoc = await db.collection('users').doc(managerId).get();
+                if (managerDoc.exists) {
+                    departmentToAssign = managerDoc.data().department;
+                }
+            }
+            
+            const updateData = {
+                firstName: formData.get('firstName'),
+                lastName: formData.get('lastName'),
+                email: formData.get('email').toLowerCase(),
+                position: formData.get('position'),
+                role: selectedRole,
+                department: departmentToAssign,
+                managerId: selectedRole === 'employee' ? (managerId || null) : null,
+                isActive: formData.get('isActive') === 'true',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            console.log('Updating employee:', employeeId, updateData);
             await db.collection('users').doc(employeeId).update(updateData);
+            
             Utils.showToast('Employee updated successfully', 'success');
             Utils.hideModal('edit-employee-modal');
             await this.loadEmployees();
             this.renderEmployeesPage();
+            
+            Utils.hideLoading(submitBtn, originalText);
         } catch (error) {
             console.error('Error updating employee:', error);
-            Utils.showToast('Failed to update employee', 'error');
+            Utils.showToast(error.message || 'Failed to update employee', 'error');
+            Utils.hideLoading(submitBtn, 'Update Employee');
+        }
+    }
+
+    async handleEditEmployee(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const employeeId = formData.get('employeeId');
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        
+        try {
+            const originalText = Utils.showLoading(submitBtn);
+            
+            const selectedRole = formData.get('role');
+            const managerId = formData.get('manager');
+            let departmentToAssign = formData.get('department');
+            
+            // If changing to employee role and selecting a manager, use manager's department
+            if (selectedRole === 'employee' && managerId) {
+                const managerDoc = await db.collection('users').doc(managerId).get();
+                if (managerDoc.exists) {
+                    departmentToAssign = managerDoc.data().department;
+                }
+            }
+            
+            const updateData = {
+                firstName: formData.get('firstName'),
+                lastName: formData.get('lastName'),
+                email: formData.get('email').toLowerCase(),
+                position: formData.get('position'),
+                role: selectedRole,
+                department: departmentToAssign,
+                managerId: selectedRole === 'employee' ? (managerId || null) : null,
+                isActive: formData.get('isActive') === 'true',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            console.log('Updating employee:', employeeId, updateData);
+            await db.collection('users').doc(employeeId).update(updateData);
+            
+            Utils.showToast('Employee updated successfully', 'success');
+            Utils.hideModal('edit-employee-modal');
+            await this.loadEmployees();
+            await this.loadManagers(); // Reload managers in case role changed
+            this.renderEmployeesPage();
+            
+            Utils.hideLoading(submitBtn, originalText);
+        } catch (error) {
+            console.error('Error updating employee:', error);
+            Utils.showToast(error.message || 'Failed to update employee', 'error');
+            Utils.hideLoading(submitBtn, 'Update Employee');
         }
     }
 
