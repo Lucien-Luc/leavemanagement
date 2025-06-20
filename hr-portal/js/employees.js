@@ -5,11 +5,15 @@ class EmployeesController {
         this.filteredEmployees = [];
         this.currentFilter = 'all';
         this.searchTerm = '';
+        this.managers = [];
+        this.departments = [];
     }
 
     async init() {
         try {
             await this.loadEmployees();
+            await this.loadManagers();
+            await this.loadDepartments();
             this.renderEmployeesPage();
             this.setupEventListeners();
             this.startRealTimeUpdates();
@@ -36,6 +40,36 @@ class EmployeesController {
         } catch (error) {
             console.error('Error loading employees:', error);
             this.employees = [];
+        }
+    }
+
+    async loadManagers() {
+        try {
+            const managersSnapshot = await db.collection('users')
+                .where('role', '==', 'manager')
+                .where('isActive', '==', true)
+                .get();
+
+            this.managers = managersSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+        } catch (error) {
+            console.error('Error loading managers:', error);
+            this.managers = [];
+        }
+    }
+
+    async loadDepartments() {
+        try {
+            const departmentsSnapshot = await db.collection('departments').get();
+            this.departments = departmentsSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+        } catch (error) {
+            console.error('Error loading departments:', error);
+            this.departments = [];
         }
     }
 
@@ -211,15 +245,9 @@ class EmployeesController {
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Department</label>
-                                <select class="form-select" name="department" required>
+                                <select class="form-select" name="department" id="hr-dept-select" required>
                                     <option value="">Select Department</option>
-                                    <option value="HR">Human Resources</option>
-                                    <option value="IT">Information Technology</option>
-                                    <option value="Finance">Finance</option>
-                                    <option value="Marketing">Marketing</option>
-                                    <option value="Sales">Sales</option>
-                                    <option value="Operations">Operations</option>
-                                    <option value="Legal">Legal</option>
+                                    ${this.departments.map(dept => `<option value="${dept.id}">${dept.name}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="form-group">
@@ -228,7 +256,12 @@ class EmployeesController {
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Manager</label>
-                                <input type="text" class="form-control" name="manager">
+                                <select class="form-select" name="manager" id="hr-manager-select" required>
+                                    <option value="">Select Manager</option>
+                                    ${this.managers.map(manager => `
+                                        <option value="${manager.id}">${manager.firstName} ${manager.lastName} (${manager.department})</option>
+                                    `).join('')}
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Start Date</label>
@@ -353,38 +386,69 @@ class EmployeesController {
         e.preventDefault();
         
         const formData = new FormData(e.target);
-        const employeeData = {
-            firstName: formData.get('firstName'),
-            lastName: formData.get('lastName'),
-            email: formData.get('email').toLowerCase(),
-            employeeId: formData.get('employeeId'),
-            department: formData.get('department'),
-            position: formData.get('position'),
-            manager: formData.get('manager'),
-            startDate: formData.get('startDate'),
-            password: CryptoJS.SHA256(formData.get('password')).toString(),
-            isActive: true,
-            leaveBalances: {
-                vacation: 20,
-                sick: 10,
-                personal: 5,
-                maternity: 90,
-                paternity: 15
-            },
-            createdAt: firebase.firestore.Timestamp.now(),
-            updatedAt: firebase.firestore.Timestamp.now()
-        };
-
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        
         try {
-            await db.collection('users').add(employeeData);
+            const originalText = Utils.showLoading(submitBtn);
+            
+            // Validate email doesn't exist
+            const existingUser = await db.collection('users')
+                .where('email', '==', formData.get('email').toLowerCase())
+                .get();
+            
+            if (!existingUser.empty) {
+                throw new Error('User with this email already exists');
+            }
+            
+            // Get manager info to set department
+            const managerId = formData.get('manager');
+            let managerDepartment = '';
+            
+            if (managerId) {
+                const managerDoc = await db.collection('users').doc(managerId).get();
+                if (managerDoc.exists) {
+                    managerDepartment = managerDoc.data().department;
+                }
+            }
+            
+            const employeeData = {
+                firstName: formData.get('firstName'),
+                lastName: formData.get('lastName'),
+                email: formData.get('email').toLowerCase(),
+                password: CryptoJS.SHA256(formData.get('password')).toString(),
+                employeeId: formData.get('employeeId'),
+                department: managerDepartment || formData.get('department'),
+                position: formData.get('position'),
+                managerId: managerId || null,
+                startDate: formData.get('startDate') || new Date().toISOString().split('T')[0],
+                role: 'employee',
+                isActive: true,
+                leaveBalances: {
+                    vacation: 25,
+                    sick: 12,
+                    personal: 8,
+                    maternity: 90,
+                    paternity: 15
+                },
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            console.log('Creating employee:', employeeData);
+            const docRef = await db.collection('users').add(employeeData);
+            console.log('Employee created with ID:', docRef.id);
+            
             Utils.showToast('Employee added successfully', 'success');
             Utils.hideModal('add-employee-modal');
             e.target.reset();
             await this.loadEmployees();
             this.renderEmployeesPage();
+            
+            Utils.hideLoading(submitBtn, originalText);
         } catch (error) {
             console.error('Error adding employee:', error);
-            Utils.showToast('Failed to add employee', 'error');
+            Utils.showToast(error.message || 'Failed to add employee', 'error');
+            Utils.hideLoading(submitBtn, 'Add Employee');
         }
     }
 
