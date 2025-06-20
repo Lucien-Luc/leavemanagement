@@ -347,10 +347,10 @@ class LeaveRequestsController {
 
         // Set up action buttons
         const actionsContainer = document.getElementById('request-actions');
-        if (request.status === 'pending') {
+        if (request.status === 'manager_approved') {
             actionsContainer.innerHTML = `
-                <button class="btn btn-success" onclick="leaveRequestsController.approveRequest('${request.id}'); Utils.hideModal('request-details-modal');">
-                    <i class="fas fa-check"></i> Approve
+                <button class="btn btn-success" onclick="leaveRequestsController.confirmRequest('${request.id}'); Utils.hideModal('request-details-modal');">
+                    <i class="fas fa-check-double"></i> Confirm Approval
                 </button>
                 <button class="btn btn-danger" onclick="leaveRequestsController.rejectRequest('${request.id}'); Utils.hideModal('request-details-modal');">
                     <i class="fas fa-times"></i> Reject
@@ -363,22 +363,26 @@ class LeaveRequestsController {
         Utils.showModal('request-details-modal');
     }
 
-    async approveRequest(requestId) {
+    async confirmRequest(requestId) {
         try {
             const currentUser = authService.getCurrentUser();
             await db.collection('leave_requests').doc(requestId).update({
                 status: 'approved',
-                approvedBy: `${currentUser.firstName} ${currentUser.lastName}`,
-                approvedAt: firebase.firestore.Timestamp.now(),
-                updatedAt: firebase.firestore.Timestamp.now()
+                hrApproval: {
+                    hrId: currentUser.id,
+                    hrName: `${currentUser.firstName} ${currentUser.lastName}`,
+                    confirmedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    comments: 'Confirmed by HR'
+                },
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            Utils.showToast('Leave request approved successfully', 'success');
+            Utils.showToast('Leave request confirmed successfully', 'success');
             await this.loadLeaveRequests();
             this.renderLeaveRequestsPage();
         } catch (error) {
-            console.error('Error approving request:', error);
-            Utils.showToast('Failed to approve request', 'error');
+            console.error('Error confirming request:', error);
+            Utils.showToast('Failed to confirm request', 'error');
         }
     }
 

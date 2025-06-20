@@ -347,12 +347,14 @@ class LeaveRequestController {
             startDate: new Date(startDate),
             endDate: new Date(endDate),
             reason: reason.trim(),
-            days,
+            totalDays: days,
             status: 'pending',
             userId: user.id,
-            userName: `${user.firstName} ${user.lastName}`,
-            userEmail: user.email,
+            employeeId: user.employeeId || '',
+            employeeName: `${user.firstName} ${user.lastName}`,
+            employeeEmail: user.email,
             department: user.department || '',
+            managerId: user.managerId || '',
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
     }

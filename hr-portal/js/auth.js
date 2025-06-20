@@ -46,8 +46,8 @@ class AuthService {
             const session = JSON.parse(employeeSession);
             if (session.expires > Date.now()) {
                 const user = session.user;
-                // Check if user has HR role or is in HR department
-                if (user.department === 'HR' || user.role === 'HR' || user.position?.toLowerCase().includes('hr')) {
+                // Check if user has HR role - must be exactly 'hr'
+                if (user.role === 'hr') {
                     this.currentUser = user;
                     this.createHRSession(user);
                     return true;

@@ -109,6 +109,11 @@ class HRApp {
                         await window.dashboardController.init();
                     }
                     break;
+                case 'departments':
+                    if (window.departmentsController) {
+                        await window.departmentsController.init();
+                    }
+                    break;
                 case 'employees':
                     await this.loadPage('pages/employees.html');
                     if (window.employeesController) {

@@ -223,7 +223,9 @@ class App {
         }
     }
 
-    initializeRegisterPage() {
+    async initializeRegisterPage() {
+        await this.loadManagersForRegistration();
+        
         const registerForm = document.getElementById('register-form');
         if (registerForm) {
             registerForm.addEventListener('submit', async (e) => {
@@ -239,6 +241,35 @@ class App {
                 e.preventDefault();
                 this.navigateTo('login');
             });
+        }
+    }
+
+    async loadManagersForRegistration() {
+        try {
+            // Load available managers
+            const managersSnapshot = await db.collection('users')
+                .where('role', '==', 'manager')
+                .where('isActive', '==', true)
+                .get();
+
+            const managers = managersSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            // Populate manager dropdown
+            const managerSelect = document.getElementById('manager');
+            if (managerSelect) {
+                managerSelect.innerHTML = '<option value="">Select your manager...</option>';
+                managers.forEach(manager => {
+                    const option = document.createElement('option');
+                    option.value = manager.id;
+                    option.textContent = `${manager.firstName} ${manager.lastName} (${manager.department})`;
+                    managerSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading managers:', error);
         }
     }
 

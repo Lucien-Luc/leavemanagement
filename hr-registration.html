@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Registration - BPN Leave Management</title>
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <link rel="stylesheet" href="styles/main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card" style="max-width: 500px;">
+            <div class="auth-header">
+                <img src="assets/logo.png" alt="BPN Logo" style="height: 60px; margin-bottom: 1rem;">
+                <h1>HR Registration</h1>
+                <p>Create the HR Administrator Account</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    This form is only for creating the single HR administrator account.
+                </div>
+            </div>
+            
+            <form id="hr-register-form">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="firstName" class="form-label">First Name</label>
+                            <input type="text" id="firstName" name="firstName" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="lastName" class="form-label">Last Name</label>
+                            <input type="text" id="lastName" name="lastName" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address</label>
+                    <input type="email" id="email" name="email" class="form-control" required>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" id="password" name="password" class="form-control" required minlength="6">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="confirmPassword" class="form-label">Confirm Password</label>
+                            <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="employeeId" class="form-label">Employee ID</label>
+                    <input type="text" id="employeeId" name="employeeId" class="form-control" placeholder="HR001">
+                </div>
+                
+                <div class="form-group">
+                    <label for="position" class="form-label">Position</label>
+                    <input type="text" id="position" name="position" class="form-control" value="HR Administrator" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="startDate" class="form-label">Start Date</label>
+                    <input type="date" id="startDate" name="startDate" class="form-control">
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;">
+                    <i class="fas fa-user-shield"></i> Create HR Account
+                </button>
+            </form>
+            
+            <div style="text-align: center;">
+                <p><a href="index.html" style="color: var(--primary-blue);">← Back to Login</a></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/utils.js"></script>
+    
+    <script>
+        class HRRegistration {
+            constructor() {
+                this.init();
+            }
+
+            async init() {
+                await this.waitForFirebase();
+                await this.checkExistingHR();
+                this.setupEventListeners();
+            }
+
+            waitForFirebase() {
+                return new Promise((resolve) => {
+                    if (typeof firebase !== 'undefined' && firebase.firestore) {
+                        resolve();
+                    } else {
+                        const checkFirebase = () => {
+                            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                                resolve();
+                            } else {
+                                setTimeout(checkFirebase, 100);
+                            }
+                        };
+                        checkFirebase();
+                    }
+                });
+            }
+
+            async checkExistingHR() {
+                try {
+                    const hrSnapshot = await db.collection('users')
+                        .where('role', '==', 'hr')
+                        .get();
+
+                    if (!hrSnapshot.empty) {
+                        document.body.innerHTML = `
+                            <div class="auth-container">
+                                <div class="auth-card">
+                                    <div class="auth-header">
+                                        <img src="assets/logo.png" alt="BPN Logo" style="height: 60px; margin-bottom: 1rem;">
+                                        <h1>HR Account Exists</h1>
+                                        <div class="alert alert-error">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            An HR administrator account already exists. Only one HR account is allowed.
+                                        </div>
+                                        <p><a href="index.html" class="btn btn-primary">← Back to Login</a></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Error checking existing HR:', error);
+                }
+            }
+
+            setupEventListeners() {
+                const form = document.getElementById('hr-register-form');
+                if (form) {
+                    form.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        await this.handleHRRegistration(e);
+                    });
+                }
+            }
+
+            async handleHRRegistration(event) {
+                const formData = new FormData(event.target);
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+
+                // Validate passwords match
+                const password = formData.get('password');
+                const confirmPassword = formData.get('confirmPassword');
+
+                if (password !== confirmPassword) {
+                    Utils.showToast('Passwords do not match', 'error');
+                    return;
+                }
+
+                try {
+                    const originalText = Utils.showLoading(submitBtn);
+
+                    // Check again for existing HR (double-check)
+                    const hrSnapshot = await db.collection('users')
+                        .where('role', '==', 'hr')
+                        .get();
+
+                    if (!hrSnapshot.empty) {
+                        throw new Error('HR account already exists');
+                    }
+
+                    // Check if email already exists
+                    const existingUser = await db.collection('users')
+                        .where('email', '==', formData.get('email').toLowerCase())
+                        .get();
+
+                    if (!existingUser.empty) {
+                        throw new Error('User with this email already exists');
+                    }
+
+                    // Hash password
+                    const hashedPassword = CryptoJS.SHA256(password).toString();
+
+                    // Create HR user
+                    const hrUser = {
+                        email: formData.get('email').toLowerCase(),
+                        password: hashedPassword,
+                        firstName: formData.get('firstName'),
+                        lastName: formData.get('lastName'),
+                        employeeId: formData.get('employeeId') || 'HR001',
+                        department: 'HR',
+                        position: 'HR Administrator',
+                        role: 'hr',
+                        startDate: formData.get('startDate') || new Date().toISOString().split('T')[0],
+                        leaveBalances: {
+                            vacation: 30,
+                            sick: 15,
+                            personal: 10,
+                            maternity: 90,
+                            paternity: 15
+                        },
+                        isActive: true,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+
+                    console.log('Creating HR user...');
+                    await db.collection('users').add(hrUser);
+
+                    Utils.showToast('HR account created successfully!', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+
+                    Utils.hideLoading(submitBtn, originalText);
+                } catch (error) {
+                    console.error('HR registration error:', error);
+                    Utils.showToast(error.message || 'Registration failed', 'error');
+                    Utils.hideLoading(submitBtn, 'Create HR Account');
+                }
+            }
+        }
+
+        // Initialize HR registration when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            new HRRegistration();
+        });
+    </script>
+</body>
+</html>
