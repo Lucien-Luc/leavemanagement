@@ -1,16 +1,78 @@
 <div class="hr-dashboard">
     <div class="dashboard-header">
-        <h1>Department Management</h1>
-        <p>Create and manage company departments</p>
-        <button class="btn btn-primary" onclick="window.departmentsController.showCreateDepartmentModal()">
-            <i class="fas fa-plus"></i> Create Department
-        </button>
+        <h1><i class="fas fa-building text-primary"></i> Department Management</h1>
+        <p class="subtitle">Create, manage, and organize company departments</p>
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="window.departmentsController.showCreateDepartmentModal()">
+                <i class="fas fa-plus"></i> Create Department
+            </button>
+            <button class="btn btn-outline" onclick="window.departmentsController.exportDepartments()">
+                <i class="fas fa-download"></i> Export
+            </button>
+        </div>
     </div>
 
-    <div class="hr-section">
-        <h2><i class="fas fa-building"></i> Departments</h2>
-        <div id="departments-container">
-            <!-- Departments will be loaded here -->
+    <!-- Department Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon bg-primary">
+                <i class="fas fa-building"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number" id="total-departments">0</div>
+                <div class="stat-label">Total Departments</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon bg-success">
+                <i class="fas fa-user-tie"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number" id="departments-with-managers">0</div>
+                <div class="stat-label">With Managers</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon bg-warning">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number" id="total-employees">0</div>
+                <div class="stat-label">Total Employees</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon bg-info">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number" id="avg-dept-size">0</div>
+                <div class="stat-label">Avg Dept Size</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Departments Overview</h3>
+            <div class="search-filters">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="dept-search" placeholder="Search departments..." class="form-control">
+                </div>
+                <select id="dept-filter" class="form-select">
+                    <option value="all">All Departments</option>
+                    <option value="with-manager">With Manager</option>
+                    <option value="without-manager">Without Manager</option>
+                    <option value="active">Active</option>
+                </select>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="departments-container">
+                <!-- Departments will be loaded here -->
+            </div>
         </div>
     </div>
 </div>

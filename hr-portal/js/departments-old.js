@@ -41,6 +41,7 @@ class DepartmentsController {
 
     async loadAvailableManagers() {
         try {
+            // Load users who could be managers (not assigned to departments or already managers)
             const usersSnapshot = await db.collection('users')
                 .where('isActive', '==', true)
                 .where('role', 'in', ['employee', 'manager'])
@@ -72,6 +73,7 @@ class DepartmentsController {
     applyFilters() {
         let filtered = [...this.departments];
 
+        // Apply search filter
         if (this.searchTerm) {
             const term = this.searchTerm.toLowerCase();
             filtered = filtered.filter(dept => 
@@ -81,6 +83,7 @@ class DepartmentsController {
             );
         }
 
+        // Apply status filter
         switch (this.currentFilter) {
             case 'with-manager':
                 filtered = filtered.filter(dept => dept.managerId);
@@ -99,6 +102,7 @@ class DepartmentsController {
     renderDepartmentsPage() {
         const mainContent = document.getElementById('main-content');
         
+        // Load the departments page HTML
         fetch('pages/departments.html')
             .then(response => response.text())
             .then(html => {
@@ -187,7 +191,7 @@ class DepartmentsController {
                         </div>
                         <div class="stat-item">
                             <i class="fas fa-calendar text-info"></i>
-                            <span>Created ${Utils.formatDate(department.createdAt) || 'N/A'}</span>
+                            <span>Created ${Utils.formatDate(department.createdAt)}</span>
                         </div>
                     </div>
                 </div>
@@ -250,14 +254,6 @@ class DepartmentsController {
             editForm.addEventListener('submit', (e) => this.handleEditDepartment(e));
         }
 
-        // Auto-uppercase department code
-        const deptCodeInput = document.getElementById('dept-code');
-        if (deptCodeInput) {
-            deptCodeInput.addEventListener('input', (e) => {
-                e.target.value = e.target.value.toUpperCase();
-            });
-        }
-
         // Setup modal close functionality
         Utils.setupModalClose('create-department-modal');
         Utils.setupModalClose('assign-manager-modal');
@@ -266,232 +262,133 @@ class DepartmentsController {
         Utils.setupModalClose('department-employees-modal');
     }
 
-    populateManagerDropdowns() {
-        const deptManagerSelect = document.getElementById('dept-manager');
-        const assignManagerSelect = document.getElementById('assign-manager-select');
-        
-        const managerOptions = this.availableManagers.map(manager => 
-            `<option value="${manager.id}">${manager.firstName} ${manager.lastName} (${manager.department || 'No Dept'})</option>`
-        ).join('');
-
-        if (deptManagerSelect) {
-            deptManagerSelect.innerHTML = '<option value="">Select manager (optional)</option>' + managerOptions;
+    setupEventListeners() {
+        // Create department form
+        const createForm = document.getElementById('create-department-form');
+        if (createForm) {
+            createForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.handleCreateDepartment(e);
+            });
         }
-        
-        if (assignManagerSelect) {
-            assignManagerSelect.innerHTML = '<option value="">Select manager...</option>' + managerOptions;
+
+        // Assign manager form
+        const assignForm = document.getElementById('assign-manager-form');
+        if (assignForm) {
+            assignForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.handleAssignManager(e);
+            });
+        }
+
+        // Auto-uppercase department code
+        const deptCodeInput = document.getElementById('dept-code');
+        if (deptCodeInput) {
+            deptCodeInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.toUpperCase();
+            });
         }
     }
 
+    populateManagerDropdowns() {
+        const dropdowns = ['dept-manager', 'assign-manager-select'];
+        
+        dropdowns.forEach(dropdownId => {
+            const dropdown = document.getElementById(dropdownId);
+            if (dropdown) {
+                const currentOptions = dropdown.innerHTML;
+                dropdown.innerHTML = currentOptions.split('</option>')[0] + '</option>';
+                
+                this.availableManagers.forEach(manager => {
+                    const option = document.createElement('option');
+                    option.value = manager.id;
+                    option.textContent = `${manager.firstName} ${manager.lastName} (${manager.employeeId})`;
+                    dropdown.appendChild(option);
+                });
+            }
+        });
+    }
+
     showCreateDepartmentModal() {
-        this.populateManagerDropdowns();
         Utils.showModal('create-department-modal');
     }
 
     showAssignManagerModal(departmentId) {
         document.getElementById('assign-dept-id').value = departmentId;
-        this.populateManagerDropdowns();
         Utils.showModal('assign-manager-modal');
     }
 
     async handleCreateDepartment(event) {
-        event.preventDefault();
-        
         const formData = new FormData(event.target);
         const submitBtn = event.target.querySelector('button[type="submit"]');
         
         try {
             const originalText = Utils.showLoading(submitBtn);
             
-            // Check for duplicate department code
-            const existingDept = this.departments.find(d => d.code === formData.get('code').toUpperCase());
-            if (existingDept) {
-                throw new Error('Department code already exists');
-            }
-            
             const departmentData = {
                 code: formData.get('code').toUpperCase(),
                 name: formData.get('name'),
-                description: formData.get('description') || '',
-                managerId: formData.get('managerId') || null,
-                isActive: true,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                description: formData.get('description'),
+                managerId: formData.get('managerId') || null
             };
 
-            await db.collection('departments').add(departmentData);
+            // Validate department code
+            if (departmentData.code.length > 6) {
+                throw new Error('Department code must be 6 characters or less');
+            }
+
+            if (this.departments.find(d => d.code === departmentData.code)) {
+                throw new Error('Department code already exists');
+            }
+
+            await departmentsController.createDepartment(departmentData);
             
             Utils.showToast('Department created successfully', 'success');
             Utils.hideModal('create-department-modal');
+            
+            // Reset form
             event.target.reset();
             
+            // Reload data
             await this.loadData();
-            this.renderStats();
             this.renderDepartmentsList();
             
             Utils.hideLoading(submitBtn, originalText);
         } catch (error) {
             console.error('Error creating department:', error);
-            Utils.showToast(error.message || 'Failed to create department', 'error');
+            Utils.showToast(error.message || 'Error creating department', 'error');
             Utils.hideLoading(submitBtn, 'Create Department');
         }
     }
 
     async handleAssignManager(event) {
-        event.preventDefault();
-        
         const formData = new FormData(event.target);
-        const departmentId = formData.get('departmentId');
-        const managerId = formData.get('managerId');
         const submitBtn = event.target.querySelector('button[type="submit"]');
         
         try {
             const originalText = Utils.showLoading(submitBtn);
             
-            await db.collection('departments').doc(departmentId).update({
-                managerId: managerId,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            const departmentId = formData.get('departmentId');
+            const managerId = formData.get('managerId');
+            
+            if (!managerId) {
+                throw new Error('Please select a manager');
+            }
+
+            await departmentsController.assignManager(departmentId, managerId);
             
             Utils.showToast('Manager assigned successfully', 'success');
             Utils.hideModal('assign-manager-modal');
             
+            // Reload data
             await this.loadData();
-            this.renderStats();
             this.renderDepartmentsList();
             
             Utils.hideLoading(submitBtn, originalText);
         } catch (error) {
             console.error('Error assigning manager:', error);
-            Utils.showToast('Failed to assign manager', 'error');
+            Utils.showToast(error.message || 'Error assigning manager', 'error');
             Utils.hideLoading(submitBtn, 'Assign Manager');
-        }
-    }
-
-    async editDepartment(departmentId) {
-        const department = this.departments.find(d => d.id === departmentId);
-        if (!department) return;
-
-        // Create edit modal if it doesn't exist
-        let editModal = document.getElementById('edit-department-modal');
-        if (!editModal) {
-            editModal = document.createElement('div');
-            editModal.id = 'edit-department-modal';
-            editModal.className = 'modal';
-            editModal.style.display = 'none';
-            document.body.appendChild(editModal);
-        }
-
-        editModal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Edit Department</h3>
-                    <span class="close" onclick="Utils.hideModal('edit-department-modal')">&times;</span>
-                </div>
-                
-                <form id="edit-department-form">
-                    <input type="hidden" name="departmentId" value="${department.id}">
-                    
-                    <div class="form-group">
-                        <label for="edit-dept-code" class="form-label">Department Code</label>
-                        <input type="text" id="edit-dept-code" name="code" class="form-control" 
-                               value="${department.code}" required maxlength="6" style="text-transform: uppercase;">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="edit-dept-name" class="form-label">Department Name</label>
-                        <input type="text" id="edit-dept-name" name="name" class="form-control" 
-                               value="${department.name}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="edit-dept-description" class="form-label">Description</label>
-                        <textarea id="edit-dept-description" name="description" class="form-control" rows="3">${department.description || ''}</textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="edit-dept-status" class="form-label">Status</label>
-                        <select id="edit-dept-status" name="isActive" class="form-control" required>
-                            <option value="true" ${department.isActive !== false ? 'selected' : ''}>Active</option>
-                            <option value="false" ${department.isActive === false ? 'selected' : ''}>Inactive</option>
-                        </select>
-                    </div>
-                    
-                    <div class="modal-actions">
-                        <button type="button" class="btn btn-secondary" onclick="Utils.hideModal('edit-department-modal')">
-                            Cancel
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Update Department
-                        </button>
-                    </div>
-                </form>
-            </div>
-        `;
-
-        Utils.showModal('edit-department-modal');
-    }
-
-    async handleEditDepartment(event) {
-        event.preventDefault();
-        
-        const formData = new FormData(event.target);
-        const departmentId = formData.get('departmentId');
-        const submitBtn = event.target.querySelector('button[type="submit"]');
-        
-        try {
-            const originalText = Utils.showLoading(submitBtn);
-            
-            const updateData = {
-                code: formData.get('code').toUpperCase(),
-                name: formData.get('name'),
-                description: formData.get('description'),
-                isActive: formData.get('isActive') === 'true',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            await db.collection('departments').doc(departmentId).update(updateData);
-            
-            Utils.showToast('Department updated successfully', 'success');
-            Utils.hideModal('edit-department-modal');
-            
-            await this.loadData();
-            this.renderStats();
-            this.renderDepartmentsList();
-            
-            Utils.hideLoading(submitBtn, originalText);
-        } catch (error) {
-            console.error('Error updating department:', error);
-            Utils.showToast('Failed to update department', 'error');
-            Utils.hideLoading(submitBtn, 'Update Department');
-        }
-    }
-
-    async deleteDepartment(departmentId) {
-        const department = this.departments.find(d => d.id === departmentId);
-        if (!department) return;
-
-        const deptEmployees = this.employees.filter(e => e.department === department.id || e.department === department.code);
-        
-        if (deptEmployees.length > 0) {
-            Utils.showToast('Cannot delete department with employees. Please reassign employees first.', 'error');
-            return;
-        }
-
-        if (!confirm(`Are you sure you want to delete the department "${department.name}"? This action cannot be undone.`)) {
-            return;
-        }
-
-        try {
-            await db.collection('departments').doc(departmentId).delete();
-            Utils.showToast('Department deleted successfully', 'success');
-            
-            await this.loadData();
-            this.renderStats();
-            this.renderDepartmentsList();
-        } catch (error) {
-            console.error('Error deleting department:', error);
-            Utils.showToast('Failed to delete department', 'error');
         }
     }
 
@@ -503,73 +400,25 @@ class DepartmentsController {
         const department = this.departments.find(d => d.id === departmentId);
         if (!department) return;
 
-        const manager = this.availableManagers.find(m => m.id === department.managerId);
-        const deptEmployees = this.employees.filter(e => e.department === department.id || e.department === department.code);
-
-        alert(`Department Details:
-        
-Name: ${department.name}
-Code: ${department.code}
-Description: ${department.description || 'No description'}
-Manager: ${manager ? `${manager.firstName} ${manager.lastName}` : 'No manager assigned'}
-Employees: ${deptEmployees.length}
-Status: ${department.isActive !== false ? 'Active' : 'Inactive'}
-Created: ${Utils.formatDate(department.createdAt) || 'Unknown'}`);
-    }
-
-    viewEmployees(departmentId) {
-        const department = this.departments.find(d => d.id === departmentId);
-        if (!department) return;
-
-        const deptEmployees = this.employees.filter(e => e.department === department.id || e.department === department.code);
-        
-        if (deptEmployees.length === 0) {
-            Utils.showToast('No employees found in this department', 'info');
-            return;
-        }
-
-        const employeeList = deptEmployees.map(emp => 
-            `• ${emp.firstName} ${emp.lastName} (${emp.position || 'No position'}) - ${emp.role || 'employee'}`
-        ).join('\n');
-
-        alert(`Employees in ${department.name}:
-
-${employeeList}`);
-    }
-
-    exportDepartments() {
-        if (this.departments.length === 0) {
-            Utils.showToast('No departments to export', 'info');
-            return;
-        }
-
-        const exportData = this.departments.map(dept => {
-            const manager = this.availableManagers.find(m => m.id === dept.managerId);
-            const employeeCount = this.employees.filter(e => e.department === dept.id || e.department === dept.code).length;
-            
-            return {
-                'Department Code': dept.code,
-                'Department Name': dept.name,
-                'Description': dept.description || '',
-                'Manager': manager ? `${manager.firstName} ${manager.lastName}` : 'No Manager',
-                'Employee Count': employeeCount,
-                'Status': dept.isActive !== false ? 'Active' : 'Inactive',
-                'Created Date': Utils.formatDate(dept.createdAt) || 'Unknown'
-            };
-        });
-
-        Utils.exportToCSV(exportData, 'departments_export.csv');
-        Utils.showToast('Departments exported successfully', 'success');
+        // Navigate to department details or show modal
+        console.log('Viewing department details:', department);
+        Utils.showToast(`Viewing details for ${department.name}`, 'info');
     }
 
     async loadDepartmentEmployeeCount(departmentId) {
-        const deptEmployees = this.employees.filter(e => e.department === departmentId);
-        const countElement = document.getElementById(`dept-${departmentId}-employees`);
-        if (countElement) {
-            countElement.textContent = deptEmployees.length;
+        try {
+            const employeesSnapshot = await db.collection('users')
+                .where('department', '==', departmentId)
+                .where('isActive', '==', true)
+                .get();
+
+            const count = employeesSnapshot.size;
+            const countElement = document.getElementById(`dept-${departmentId}-employees`);
+            if (countElement) {
+                countElement.textContent = count;
+            }
+        } catch (error) {
+            console.error('Error loading employee count:', error);
         }
     }
 }
-
-// Global controller instance
-window.departmentsController = new DepartmentsController();
