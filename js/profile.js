@@ -232,7 +232,6 @@ class ProfileController {
             const downloadURL = await uploadTask.ref.getDownloadURL();
             
             // Update user profile with new picture URL
-            const user = authService.getCurrentUser();
             await db.collection('users').doc(user.id).update({
                 profilePicture: downloadURL,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
