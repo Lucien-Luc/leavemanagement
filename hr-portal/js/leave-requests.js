@@ -21,9 +21,9 @@ class LeaveRequestsController {
 
     async loadLeaveRequests() {
         try {
-            // HR only sees approved requests that went through proper manager approval
+            // HR sees manager-approved requests and final approved requests
             const snapshot = await db.collection('leave_requests')
-                .where('status', 'in', ['approved', 'hr_confirmed'])
+                .where('status', 'in', ['manager_approved', 'approved'])
                 .orderBy('createdAt', 'desc')
                 .get();
 
@@ -180,13 +180,16 @@ class LeaveRequestsController {
                                         <button class="btn btn-outline btn-sm" onclick="leaveRequestsController.viewRequestDetails('${request.id}')">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        ${request.status === 'pending' ? `
-                                            <button class="btn btn-success btn-sm" onclick="leaveRequestsController.approveRequest('${request.id}')">
-                                                <i class="fas fa-check"></i>
+                                        ${request.status === 'manager_approved' ? `
+                                            <button class="btn btn-success btn-sm" onclick="leaveRequestsController.confirmRequest('${request.id}')" title="Confirm leave request">
+                                                <i class="fas fa-check-double"></i> Confirm
                                             </button>
-                                            <button class="btn btn-danger btn-sm" onclick="leaveRequestsController.rejectRequest('${request.id}')">
-                                                <i class="fas fa-times"></i>
+                                            <button class="btn btn-danger btn-sm" onclick="leaveRequestsController.rejectRequest('${request.id}')" title="Reject leave request">
+                                                <i class="fas fa-times"></i> Reject
                                             </button>
+                                        ` : ''}
+                                        ${request.status === 'approved' ? `
+                                            <span class="badge badge-success">HR Confirmed</span>
                                         ` : ''}
                                     </div>
                                 </td>
@@ -369,7 +372,7 @@ class LeaveRequestsController {
         try {
             const currentUser = authService.getCurrentUser();
             await db.collection('leave_requests').doc(requestId).update({
-                status: 'hr_confirmed',
+                status: 'approved',
                 hrApproval: {
                     hrId: currentUser.id,
                     hrName: `${currentUser.firstName} ${currentUser.lastName}`,

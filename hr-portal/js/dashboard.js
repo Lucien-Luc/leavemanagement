@@ -46,7 +46,7 @@ class DashboardController {
             this.stats = {
                 totalEmployees: employees.length,
                 totalRequests: requests.length,
-                pendingRequests: requests.filter(r => r.status === 'pending').length,
+                pendingRequests: requests.filter(r => r.status === 'manager_approved').length, // HR sees manager-approved as pending
                 approvedRequests: requests.filter(r => r.status === 'approved').length,
                 rejectedRequests: requests.filter(r => r.status === 'rejected').length,
                 activeEmployees: employees.filter(e => e.isActive !== false).length

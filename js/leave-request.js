@@ -474,7 +474,7 @@ class LeaveRequestController {
                 <td>${Utils.capitalize(request.leaveType)}</td>
                 <td>${Utils.formatDate(request.startDate)} - ${Utils.formatDate(request.endDate)}</td>
                 <td>${request.days} business days</td>
-                <td><span class="badge ${Utils.getStatusBadgeClass(request.status)}">${Utils.capitalize(request.status)}</span></td>
+                <td><span class="badge ${Utils.getStatusBadgeClass(request.status)}">${this.getStatusDisplayText(request.status)}</span></td>
                 <td>${Utils.formatDate(request.createdAt, true)}</td>
                 <td>
                     ${request.status === 'pending' ? `
@@ -584,6 +584,17 @@ class LeaveRequestController {
             return this.allRequests;
         }
         return this.allRequests.filter(request => request.status === this.currentFilter);
+    }
+
+    getStatusDisplayText(status) {
+        const statusTexts = {
+            'pending': 'Pending',
+            'manager_approved': 'Manager Approved',
+            'approved': 'Approved',
+            'rejected': 'Rejected',
+            'cancelled': 'Cancelled'
+        };
+        return statusTexts[status] || Utils.capitalize(status);
     }
 }
 

@@ -113,8 +113,8 @@ class Utils {
     static getStatusBadgeClass(status) {
         const classes = {
             pending: 'badge-pending',
+            manager_approved: 'badge-warning',
             approved: 'badge-approved',
-            hr_confirmed: 'badge-success',
             rejected: 'badge-rejected'
         };
         return classes[status] || 'badge-pending';

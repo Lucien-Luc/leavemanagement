@@ -230,3 +230,10 @@ The application uses the following Firestore collections designed for easy HR in
 - June 30, 2025: Updated leave approval workflow - Manager now gives final approval (status: "approved")
 - June 30, 2025: HR portal now only sees manager-approved requests for confirmation (status: "hr_confirmed")
 - June 30, 2025: Simplified workflow: Employee → Manager (final approval) → HR (confirmation only)
+- June 30, 2025: Migration from Replit Agent to Replit environment completed successfully
+- June 30, 2025: Fixed leave approval workflow with proper 3-stage process:
+  * Employee submits → Status: 'pending' (visible to manager)
+  * Manager approves → Status: 'manager_approved' (visible to HR)
+  * HR confirms → Status: 'approved' (final state)
+- June 30, 2025: Updated all portals to handle new workflow statuses correctly
+- June 30, 2025: Enhanced status displays across employee, manager, and HR portals

@@ -215,8 +215,8 @@ class ManagerLeaveRequestsController {
     getStatusClass(status) {
         const statusClasses = {
             'pending': 'status-pending',
+            'manager_approved': 'status-manager-approved',
             'approved': 'status-approved',
-            'hr_confirmed': 'status-hr-confirmed',
             'rejected': 'status-rejected'
         };
         return statusClasses[status] || 'status-unknown';
@@ -225,8 +225,8 @@ class ManagerLeaveRequestsController {
     getStatusText(status) {
         const statusTexts = {
             'pending': 'Pending Review',
-            'approved': 'Approved by Manager',
-            'hr_confirmed': 'HR Confirmed',
+            'manager_approved': 'Approved - Awaiting HR',
+            'approved': 'Final Approval (HR Confirmed)',
             'rejected': 'Rejected'
         };
         return statusTexts[status] || 'Unknown';
@@ -309,7 +309,7 @@ class ManagerLeaveRequestsController {
             const manager = managerAuthService.getCurrentManager();
             
             await db.collection('leave_requests').doc(requestId).update({
-                status: 'approved',
+                status: 'manager_approved',
                 approvedBy: `${manager.firstName} ${manager.lastName}`,
                 approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 managerApproval: {

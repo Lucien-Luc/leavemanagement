@@ -118,7 +118,8 @@ class Utils {
     static getStatusBadge(status) {
         const badges = {
             pending: '<span class="badge badge-pending">Pending</span>',
-            approved: '<span class="badge badge-approved">Approved</span>',
+            manager_approved: '<span class="badge badge-warning">Manager Approved</span>',
+            approved: '<span class="badge badge-approved">HR Confirmed</span>',
             rejected: '<span class="badge badge-rejected">Rejected</span>',
             cancelled: '<span class="badge badge-rejected">Cancelled</span>',
             active: '<span class="badge badge-active">Active</span>',
