@@ -21,7 +21,7 @@ class LeaveRequestsController {
 
     async loadLeaveRequests() {
         try {
-            // HR only sees approved requests for confirmation
+            // HR only sees approved requests that went through proper manager approval
             const snapshot = await db.collection('leave_requests')
                 .where('status', 'in', ['approved', 'hr_confirmed'])
                 .orderBy('createdAt', 'desc')
@@ -38,7 +38,11 @@ class LeaveRequestsController {
                     approvedAt: data.approvedAt?.toDate(),
                     rejectedAt: data.rejectedAt?.toDate()
                 };
+            }).filter(request => {
+                // Only show requests that have proper manager approval
+                return request.managerApproval && request.managerApproval.managerId;
             });
+            
             this.applyFilters();
         } catch (error) {
             console.error('Error loading leave requests:', error);
