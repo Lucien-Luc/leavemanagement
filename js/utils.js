@@ -114,6 +114,7 @@ class Utils {
         const classes = {
             pending: 'badge-pending',
             approved: 'badge-approved',
+            hr_confirmed: 'badge-success',
             rejected: 'badge-rejected'
         };
         return classes[status] || 'badge-pending';

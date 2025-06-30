@@ -21,7 +21,9 @@ class LeaveRequestsController {
 
     async loadLeaveRequests() {
         try {
+            // HR only sees approved requests for confirmation
             const snapshot = await db.collection('leave_requests')
+                .where('status', 'in', ['approved', 'hr_confirmed'])
                 .orderBy('createdAt', 'desc')
                 .get();
 
@@ -55,11 +57,9 @@ class LeaveRequestsController {
                 <div class="d-flex gap-2">
                     <input type="text" id="request-search" class="form-control" placeholder="Search by employee name or email..." value="${this.searchTerm}" style="width: 300px;">
                     <select id="request-filter" class="form-select" style="width: 200px;">
-                        <option value="all">All Requests</option>
-                        <option value="pending">Pending Manager Review</option>
-                        <option value="manager_approved">Manager Approved</option>
-                        <option value="approved">HR Confirmed</option>
-                        <option value="rejected">Rejected</option>
+                        <option value="all">All Approved Requests</option>
+                        <option value="approved">Manager Approved</option>
+                        <option value="hr_confirmed">HR Confirmed</option>
                         <option value="today">Today's Requests</option>
                         <option value="this-week">This Week</option>
                     </select>
@@ -72,21 +72,11 @@ class LeaveRequestsController {
             <div class="stats-grid mb-3">
                 <div class="stat-card">
                     <div class="stat-header">
-                        <div class="stat-icon warning">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                    </div>
-                    <div class="stat-value">${this.leaveRequests.filter(r => r.status === 'pending').length}</div>
-                    <div class="stat-label">Pending Manager Review</div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-header">
                         <div class="stat-icon info">
                             <i class="fas fa-user-check"></i>
                         </div>
                     </div>
-                    <div class="stat-value">${this.leaveRequests.filter(r => r.status === 'manager_approved').length}</div>
+                    <div class="stat-value">${this.leaveRequests.filter(r => r.status === 'approved').length}</div>
                     <div class="stat-label">Manager Approved</div>
                 </div>
 
@@ -96,18 +86,18 @@ class LeaveRequestsController {
                             <i class="fas fa-check-circle"></i>
                         </div>
                     </div>
-                    <div class="stat-value">${this.leaveRequests.filter(r => r.status === 'approved').length}</div>
+                    <div class="stat-value">${this.leaveRequests.filter(r => r.status === 'hr_confirmed').length}</div>
                     <div class="stat-label">HR Confirmed</div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-header">
-                        <div class="stat-icon danger">
-                            <i class="fas fa-times-circle"></i>
+                        <div class="stat-icon primary">
+                            <i class="fas fa-calendar-check"></i>
                         </div>
                     </div>
-                    <div class="stat-value">${this.leaveRequests.filter(r => r.status === 'rejected').length}</div>
-                    <div class="stat-label">Rejected Requests</div>
+                    <div class="stat-value">${this.leaveRequests.filter(r => r.status === 'approved' || r.status === 'hr_confirmed').length}</div>
+                    <div class="stat-label">Total Approved</div>
                 </div>
 
                 <div class="stat-card">
@@ -267,17 +257,11 @@ class LeaveRequestsController {
 
         // Apply status filter
         switch (this.currentFilter) {
-            case 'pending':
-                filtered = filtered.filter(req => req.status === 'pending');
-                break;
-            case 'manager_approved':
-                filtered = filtered.filter(req => req.status === 'manager_approved');
-                break;
             case 'approved':
                 filtered = filtered.filter(req => req.status === 'approved');
                 break;
-            case 'rejected':
-                filtered = filtered.filter(req => req.status === 'rejected');
+            case 'hr_confirmed':
+                filtered = filtered.filter(req => req.status === 'hr_confirmed');
                 break;
             case 'today':
                 const today = new Date();
@@ -381,7 +365,7 @@ class LeaveRequestsController {
         try {
             const currentUser = authService.getCurrentUser();
             await db.collection('leave_requests').doc(requestId).update({
-                status: 'approved',
+                status: 'hr_confirmed',
                 hrApproval: {
                     hrId: currentUser.id,
                     hrName: `${currentUser.firstName} ${currentUser.lastName}`,

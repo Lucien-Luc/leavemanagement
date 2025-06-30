@@ -63,9 +63,9 @@ class ManagerLeaveRequestsController {
                             <label for="status-filter">Status:</label>
                             <select id="status-filter" class="form-control">
                                 <option value="all">All Requests</option>
-                                <option value="pending">Pending</option>
-                                <option value="manager_approved">Manager Approved</option>
-                                <option value="approved">HR Confirmed</option>
+                                <option value="pending">Pending Review</option>
+                                <option value="approved">Approved</option>
+                                <option value="hr_confirmed">HR Confirmed</option>
                                 <option value="rejected">Rejected</option>
                             </select>
                         </div>
@@ -215,8 +215,8 @@ class ManagerLeaveRequestsController {
     getStatusClass(status) {
         const statusClasses = {
             'pending': 'status-pending',
-            'manager_approved': 'status-manager-approved',
             'approved': 'status-approved',
+            'hr_confirmed': 'status-hr-confirmed',
             'rejected': 'status-rejected'
         };
         return statusClasses[status] || 'status-unknown';
@@ -225,8 +225,8 @@ class ManagerLeaveRequestsController {
     getStatusText(status) {
         const statusTexts = {
             'pending': 'Pending Review',
-            'manager_approved': 'Manager Approved',
-            'approved': 'HR Confirmed',
+            'approved': 'Approved by Manager',
+            'hr_confirmed': 'HR Confirmed',
             'rejected': 'Rejected'
         };
         return statusTexts[status] || 'Unknown';
@@ -309,7 +309,9 @@ class ManagerLeaveRequestsController {
             const manager = managerAuthService.getCurrentManager();
             
             await db.collection('leave_requests').doc(requestId).update({
-                status: 'manager_approved',
+                status: 'approved',
+                approvedBy: `${manager.firstName} ${manager.lastName}`,
+                approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 managerApproval: {
                     managerId: manager.id,
                     managerName: `${manager.firstName} ${manager.lastName}`,
