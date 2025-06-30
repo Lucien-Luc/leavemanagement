@@ -67,7 +67,9 @@ class DashboardController {
 
     async loadRecentRequests() {
         try {
+            // HR should only see manager-approved requests needing confirmation
             const snapshot = await db.collection('leave_requests')
+                .where('status', '==', 'manager_approved')
                 .orderBy('createdAt', 'desc')
                 .limit(10)
                 .get();
@@ -197,14 +199,15 @@ class DashboardController {
                                 <td>${Utils.formatDate(request.startDate)}</td>
                                 <td>${Utils.formatDate(request.endDate)}</td>
                                 <td>${request.days}</td>
-                                <td>${Utils.getStatusBadge(request.status)}</td>
                                 <td>
-                                    ${request.status === 'pending' ? `
-                                        <button class="btn btn-success btn-sm" onclick="dashboardController.approveRequest('${request.id}')">
-                                            <i class="fas fa-check"></i> Approve
-                                        </button>
-                                        <button class="btn btn-danger btn-sm" onclick="dashboardController.rejectRequest('${request.id}')">
-                                            <i class="fas fa-times"></i> Reject
+                                    <span class="badge ${this.getStatusBadgeClass(request.status)}">
+                                        ${this.getStatusText(request.status)}
+                                    </span>
+                                </td>
+                                <td>
+                                    ${request.status === 'manager_approved' ? `
+                                        <button class="btn btn-success btn-sm" onclick="dashboardController.confirmRequest('${request.id}')">
+                                            <i class="fas fa-check"></i> Confirm
                                         </button>
                                     ` : `
                                         <button class="btn btn-outline btn-sm" onclick="dashboardController.viewRequest('${request.id}')">
@@ -220,22 +223,52 @@ class DashboardController {
         `;
     }
 
-    async approveRequest(requestId) {
+    getStatusBadgeClass(status) {
+        const classes = {
+            'pending': 'badge-warning',
+            'manager_approved': 'badge-info',
+            'manager_rejected': 'badge-danger',
+            'approved': 'badge-success',
+            'rejected': 'badge-danger'
+        };
+        return classes[status] || 'badge-secondary';
+    }
+
+    getStatusText(status) {
+        const texts = {
+            'pending': 'Pending Manager',
+            'manager_approved': 'Awaiting HR Confirmation',
+            'manager_rejected': 'Rejected by Manager',
+            'approved': 'Approved',
+            'rejected': 'Rejected'
+        };
+        return texts[status] || status;
+    }
+
+    async confirmRequest(requestId) {
         try {
             const currentUser = authService.getCurrentUser();
             await db.collection('leave_requests').doc(requestId).update({
                 status: 'approved',
-                approvedBy: `${currentUser.firstName} ${currentUser.lastName}`,
-                approvedAt: firebase.firestore.Timestamp.now(),
-                updatedAt: firebase.firestore.Timestamp.now()
+                hrConfirmation: {
+                    hrId: currentUser.id,
+                    hrName: `${currentUser.firstName} ${currentUser.lastName}`,
+                    confirmedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    note: 'Confirmed by HR'
+                },
+                workflow: {
+                    stage: 3,
+                    stageDescription: 'Approved & Confirmed'
+                },
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            Utils.showToast('Leave request approved successfully', 'success');
+            Utils.showToast('Leave request confirmed successfully', 'success');
             await this.loadDashboardData();
             this.renderDashboard();
         } catch (error) {
-            console.error('Error approving request:', error);
-            Utils.showToast('Failed to approve request', 'error');
+            console.error('Error confirming request:', error);
+            Utils.showToast('Failed to confirm request', 'error');
         }
     }
 
