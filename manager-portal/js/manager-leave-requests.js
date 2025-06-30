@@ -25,22 +25,54 @@ class ManagerLeaveRequestsController {
         }
 
         try {
-            // Load requests where this manager is the assigned manager
+            // Load ALL requests first, then filter by manager
             const requestsSnapshot = await db.collection('leave_requests')
-                .where('managerId', '==', manager.id)
                 .orderBy('createdAt', 'desc')
                 .get();
 
-            this.leaveRequests = requestsSnapshot.docs.map(doc => {
-                const data = doc.data();
-                return {
-                    id: doc.id,
-                    ...data,
-                    startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
-                    endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
-                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
-                };
-            });
+            // Filter requests for this manager and map data
+            this.leaveRequests = requestsSnapshot.docs
+                .map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        ...data,
+                        startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
+                        endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
+                        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
+                    };
+                })
+                .filter(request => {
+                    console.log('Checking request:', {
+                        requestId: request.id,
+                        requestManagerId: request.managerId,
+                        requestDepartment: request.department,
+                        requestUserEmail: request.userEmail,
+                        managerInfo: {
+                            id: manager.id,
+                            employeeId: manager.employeeId,
+                            department: manager.department,
+                            email: manager.email
+                        }
+                    });
+                    
+                    // Multiple ways to match requests to this manager
+                    const isManagerMatch = 
+                        request.managerId === manager.id || 
+                        request.managerId === manager.employeeId ||
+                        request.department === manager.department ||
+                        (request.userEmail && manager.department && 
+                         request.userEmail.toLowerCase().includes(manager.department.toLowerCase())) ||
+                        // Also check if the user's manager field matches any identifier of this manager
+                        (request.userId && request.managerId && 
+                         (request.managerId === manager.id || request.managerId === manager.employeeId));
+                    
+                    if (isManagerMatch) {
+                        console.log('✓ Request matches manager:', request.id);
+                    }
+                    
+                    return isManagerMatch;
+                });
         } catch (error) {
             console.error('Error loading leave requests:', error);
             this.leaveRequests = [];
@@ -115,6 +147,7 @@ class ManagerLeaveRequestsController {
         const statusText = this.getStatusText(request.status);
         const canApprove = request.status === 'pending';
         const isManagerApproved = request.status === 'manager_approved';
+        const isApproved = request.status === 'approved';
         
         return `
             <div class="request-card ${statusClass}">
@@ -205,6 +238,12 @@ class ManagerLeaveRequestsController {
                     ${isManagerApproved ? `
                         <div class="status-message">
                             <i class="fas fa-clock"></i> Waiting for HR confirmation
+                        </div>
+                    ` : ''}
+                    
+                    ${isApproved ? `
+                        <div class="status-message">
+                            <i class="fas fa-check-circle"></i> Fully approved by HR
                         </div>
                     ` : ''}
                 </div>

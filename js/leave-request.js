@@ -290,7 +290,7 @@ class LeaveRequestController {
             const originalText = Utils.showLoading(submitBtn);
 
             // Validate form data
-            const leaveData = this.validateAndCollectFormData(formData);
+            const leaveData = await this.validateAndCollectFormData(formData);
             
             // Upload attachments if any
             if (this.attachments.length > 0) {
@@ -318,7 +318,7 @@ class LeaveRequestController {
         }
     }
 
-    validateAndCollectFormData(formData) {
+    async validateAndCollectFormData(formData) {
         const leaveType = formData.get('leave-type');
         const startDate = formData.get('start-date');
         const endDate = formData.get('end-date');
@@ -342,6 +342,35 @@ class LeaveRequestController {
             throw new Error(`Insufficient leave balance. You have ${availableBalance} days available.`);
         }
 
+        // Ensure managerId is properly set - try multiple fallbacks
+        let managerId = user.managerId || user.manager || '';
+        
+        // If still no managerId, try to find manager by department
+        if (!managerId && user.department) {
+            try {
+                const managerQuery = await db.collection('users')
+                    .where('department', '==', user.department)
+                    .where('role', '==', 'manager')
+                    .where('isActive', '==', true)
+                    .limit(1)
+                    .get();
+                
+                if (!managerQuery.empty) {
+                    managerId = managerQuery.docs[0].id;
+                    console.log('Found manager by department:', managerId);
+                }
+            } catch (error) {
+                console.error('Error finding manager by department:', error);
+            }
+        }
+
+        console.log('Leave request data:', {
+            userId: user.id,
+            managerId: managerId,
+            department: user.department,
+            leaveType: leaveType
+        });
+
         return {
             leaveType,
             startDate: new Date(startDate),
@@ -357,7 +386,7 @@ class LeaveRequestController {
             employeeEmail: user.email,
             userEmail: user.email,
             department: user.department || '',
-            managerId: user.managerId || '',
+            managerId: managerId,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
     }

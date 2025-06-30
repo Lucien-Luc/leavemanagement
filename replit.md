@@ -237,3 +237,11 @@ The application uses the following Firestore collections designed for easy HR in
   * HR confirms → Status: 'approved' (final state)
 - June 30, 2025: Updated all portals to handle new workflow statuses correctly
 - June 30, 2025: Enhanced status displays across employee, manager, and HR portals
+- June 30, 2025: Complete workflow rewrite - Fixed all leave approval components:
+  * Employee leave submission with robust manager ID resolution
+  * Manager portal with comprehensive request filtering and debugging
+  * HR portal properly handling manager_approved → approved transitions
+  * Added debug tools and comprehensive test suite for workflow validation
+  * Fixed async/await issues in form validation
+  * Enhanced status displays with proper user-friendly text
+- June 30, 2025: Created debug-workflow.html and test-workflow.js for complete system testing

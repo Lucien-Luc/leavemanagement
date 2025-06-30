@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow Debug</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="test-workflow.js"></script>
+</head>
+<body>
+    <h1>Leave Workflow Debug Tool</h1>
+    
+    <div>
+        <h2>Current Users</h2>
+        <button onclick="loadUsers()">Load Users</button>
+        <div id="users-list"></div>
+    </div>
+    
+    <div>
+        <h2>Current Leave Requests</h2>
+        <button onclick="loadLeaveRequests()">Load Leave Requests</button>
+        <div id="requests-list"></div>
+    </div>
+    
+    <div>
+        <h2>Test Workflow</h2>
+        <button onclick="createTestData()">Create Test Manager & Employee</button>
+        <button onclick="createTestLeaveRequest()">Create Test Leave Request</button>
+        <button onclick="resetTestData()">Reset Test Data</button>
+    </div>
+    
+    <div>
+        <h2>Complete Workflow Test</h2>
+        <button onclick="runCompleteWorkflowTest()" style="background: green; color: white; padding: 10px;">🚀 Run Complete Workflow Test</button>
+        <button onclick="cleanupTestData()" style="background: red; color: white; padding: 10px;">🧹 Clean Test Data</button>
+        <div id="workflow-results" style="margin-top: 10px; padding: 10px; background: #f5f5f5; font-family: monospace; white-space: pre-wrap;"></div>
+    </div>
+
+    <script>
+        let db;
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        
+        async function loadUsers() {
+            try {
+                const snapshot = await db.collection('users').get();
+                const users = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                const usersList = document.getElementById('users-list');
+                usersList.innerHTML = `
+                    <h3>Users (${users.length})</h3>
+                    ${users.map(user => `
+                        <div style="border: 1px solid #ccc; margin: 5px; padding: 10px;">
+                            <strong>${user.firstName} ${user.lastName}</strong> (${user.email})<br>
+                            ID: ${user.id}<br>
+                            Role: ${user.role || 'employee'}<br>
+                            Department: ${user.department || 'N/A'}<br>
+                            Manager ID: ${user.managerId || 'N/A'}<br>
+                            Active: ${user.isActive !== false ? 'Yes' : 'No'}
+                        </div>
+                    `).join('')}
+                `;
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+        
+        async function loadLeaveRequests() {
+            try {
+                const snapshot = await db.collection('leave_requests').orderBy('createdAt', 'desc').get();
+                const requests = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                const requestsList = document.getElementById('requests-list');
+                requestsList.innerHTML = `
+                    <h3>Leave Requests (${requests.length})</h3>
+                    ${requests.map(req => `
+                        <div style="border: 1px solid #ccc; margin: 5px; padding: 10px;">
+                            <strong>${req.userName || req.employeeName}</strong><br>
+                            Type: ${req.leaveType}<br>
+                            Status: ${req.status}<br>
+                            User ID: ${req.userId}<br>
+                            Manager ID: ${req.managerId || 'N/A'}<br>
+                            Department: ${req.department || 'N/A'}<br>
+                            Days: ${req.days}<br>
+                            Created: ${req.createdAt ? new Date(req.createdAt.seconds * 1000).toLocaleString() : 'N/A'}
+                        </div>
+                    `).join('')}
+                `;
+            } catch (error) {
+                console.error('Error loading leave requests:', error);
+            }
+        }
+        
+        async function createTestData() {
+            try {
+                // Create test manager
+                const managerData = {
+                    email: 'testmanager@bpn.rw',
+                    password: 'dummy_hash',
+                    firstName: 'Test',
+                    lastName: 'Manager',
+                    employeeId: 'MGR001',
+                    department: 'Engineering',
+                    position: 'Engineering Manager',
+                    role: 'manager',
+                    managerId: null,
+                    startDate: '2023-01-01',
+                    leaveBalances: {
+                        vacation: 30,
+                        sick: 15,
+                        personal: 10,
+                        maternity: 90,
+                        paternity: 15
+                    },
+                    isActive: true,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                const managerRef = await db.collection('users').add(managerData);
+                console.log('Created manager with ID:', managerRef.id);
+                
+                // Create test employee
+                const employeeData = {
+                    email: 'testemployee@bpn.rw',
+                    password: 'dummy_hash',
+                    firstName: 'Test',
+                    lastName: 'Employee',
+                    employeeId: 'EMP001',
+                    department: 'Engineering',
+                    position: 'Software Developer',
+                    role: 'employee',
+                    managerId: managerRef.id,
+                    startDate: '2023-06-01',
+                    leaveBalances: {
+                        vacation: 25,
+                        sick: 12,
+                        personal: 8,
+                        maternity: 90,
+                        paternity: 15
+                    },
+                    isActive: true,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                const employeeRef = await db.collection('users').add(employeeData);
+                console.log('Created employee with ID:', employeeRef.id);
+                
+                alert('Test data created successfully!');
+                loadUsers();
+                
+            } catch (error) {
+                console.error('Error creating test data:', error);
+                alert('Error creating test data: ' + error.message);
+            }
+        }
+        
+        async function createTestLeaveRequest() {
+            try {
+                // Find test employee
+                const employeeQuery = await db.collection('users')
+                    .where('email', '==', 'testemployee@bpn.rw')
+                    .limit(1)
+                    .get();
+                
+                if (employeeQuery.empty) {
+                    alert('Test employee not found. Create test data first.');
+                    return;
+                }
+                
+                const employee = employeeQuery.docs[0];
+                const employeeData = employee.data();
+                
+                const leaveRequestData = {
+                    leaveType: 'vacation',
+                    startDate: new Date('2025-07-15'),
+                    endDate: new Date('2025-07-19'),
+                    reason: 'Test vacation request',
+                    days: 5,
+                    totalDays: 5,
+                    status: 'pending',
+                    userId: employee.id,
+                    employeeId: employeeData.employeeId,
+                    employeeName: `${employeeData.firstName} ${employeeData.lastName}`,
+                    userName: `${employeeData.firstName} ${employeeData.lastName}`,
+                    employeeEmail: employeeData.email,
+                    userEmail: employeeData.email,
+                    department: employeeData.department,
+                    managerId: employeeData.managerId,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                const requestRef = await db.collection('leave_requests').add(leaveRequestData);
+                console.log('Created leave request with ID:', requestRef.id);
+                
+                alert('Test leave request created successfully!');
+                loadLeaveRequests();
+                
+            } catch (error) {
+                console.error('Error creating test leave request:', error);
+                alert('Error creating test leave request: ' + error.message);
+            }
+        }
+        
+        async function resetTestData() {
+            try {
+                // Delete test users
+                const testUsersQuery = await db.collection('users')
+                    .where('email', 'in', ['testmanager@bpn.rw', 'testemployee@bpn.rw'])
+                    .get();
+                
+                for (const doc of testUsersQuery.docs) {
+                    await doc.ref.delete();
+                }
+                
+                // Delete test leave requests
+                const testRequestsQuery = await db.collection('leave_requests')
+                    .where('userEmail', 'in', ['testmanager@bpn.rw', 'testemployee@bpn.rw'])
+                    .get();
+                
+                for (const doc of testRequestsQuery.docs) {
+                    await doc.ref.delete();
+                }
+                
+                alert('Test data reset successfully!');
+                loadUsers();
+                loadLeaveRequests();
+                
+            } catch (error) {
+                console.error('Error resetting test data:', error);
+                alert('Error resetting test data: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
