@@ -27,7 +27,7 @@ class LeaveRequestsController {
                 .orderBy('createdAt', 'desc')
                 .get();
 
-            const allRequests = snapshot.docs.map(doc => {
+            this.leaveRequests = snapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
                     id: doc.id,
@@ -38,22 +38,10 @@ class LeaveRequestsController {
                     approvedAt: data.approvedAt?.toDate(),
                     rejectedAt: data.rejectedAt?.toDate()
                 };
-            });
-
-            // DEBUG: Log all requests and filter results
-            console.log('HR Portal - Total approved/hr_confirmed requests:', allRequests.length);
-            allRequests.forEach(req => {
-                console.log(`Request ${req.id}: status=${req.status}, hasManagerApproval=${!!req.managerApproval}, managerId=${req.managerApproval?.managerId}`);
-            });
-
-            this.leaveRequests = allRequests.filter(request => {
+            }).filter(request => {
                 // Only show requests that have proper manager approval
-                const hasManagerApproval = request.managerApproval && request.managerApproval.managerId;
-                console.log(`Filtering request ${request.id}: hasManagerApproval=${hasManagerApproval}`);
-                return hasManagerApproval;
+                return request.managerApproval && request.managerApproval.managerId;
             });
-
-            console.log('HR Portal - Filtered requests after manager approval check:', this.leaveRequests.length);
             
             this.applyFilters();
         } catch (error) {
@@ -168,8 +156,8 @@ class LeaveRequestsController {
                             <tr>
                                 <td>
                                     <div>
-                                        <strong>${request.userName}</strong><br>
-                                        <small class="text-muted">${request.userEmail}</small>
+                                        <strong>${request.userName || request.employeeName || 'Unknown'}</strong><br>
+                                        <small class="text-muted">${request.userEmail || request.employeeEmail || 'No email'}</small>
                                     </div>
                                 </td>
                                 <td>
@@ -179,7 +167,7 @@ class LeaveRequestsController {
                                     <span class="badge badge-primary">${request.leaveType}</span>
                                 </td>
                                 <td>
-                                    <strong>${request.days} days</strong>
+                                    <strong>${request.days || request.totalDays || 0} days</strong>
                                 </td>
                                 <td>${Utils.formatDate(request.startDate)}</td>
                                 <td>${Utils.formatDate(request.endDate)}</td>
