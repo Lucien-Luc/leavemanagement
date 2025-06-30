@@ -380,6 +380,9 @@ class LeaveRequestController {
     }
 
     async submitLeaveRequest(leaveData) {
+        // DEBUG: Log what managerId is being used
+        console.log('Submitting leave request with managerId:', leaveData.managerId);
+        
         leaveData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
         
         await db.collection('leave_requests').add(leaveData);

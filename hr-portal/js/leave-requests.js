@@ -27,7 +27,7 @@ class LeaveRequestsController {
                 .orderBy('createdAt', 'desc')
                 .get();
 
-            this.leaveRequests = snapshot.docs.map(doc => {
+            const allRequests = snapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
                     id: doc.id,
@@ -38,10 +38,22 @@ class LeaveRequestsController {
                     approvedAt: data.approvedAt?.toDate(),
                     rejectedAt: data.rejectedAt?.toDate()
                 };
-            }).filter(request => {
-                // Only show requests that have proper manager approval
-                return request.managerApproval && request.managerApproval.managerId;
             });
+
+            // DEBUG: Log all requests and filter results
+            console.log('HR Portal - Total approved/hr_confirmed requests:', allRequests.length);
+            allRequests.forEach(req => {
+                console.log(`Request ${req.id}: status=${req.status}, hasManagerApproval=${!!req.managerApproval}, managerId=${req.managerApproval?.managerId}`);
+            });
+
+            this.leaveRequests = allRequests.filter(request => {
+                // Only show requests that have proper manager approval
+                const hasManagerApproval = request.managerApproval && request.managerApproval.managerId;
+                console.log(`Filtering request ${request.id}: hasManagerApproval=${hasManagerApproval}`);
+                return hasManagerApproval;
+            });
+
+            console.log('HR Portal - Filtered requests after manager approval check:', this.leaveRequests.length);
             
             this.applyFilters();
         } catch (error) {
