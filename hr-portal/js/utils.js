@@ -145,14 +145,25 @@ class Utils {
     static showModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
+            console.log('Showing modal:', modalId);
+            modal.style.display = 'flex';
             modal.classList.add('show');
+            // Add focus trap
+            const firstInput = modal.querySelector('input, textarea, select, button');
+            if (firstInput) {
+                setTimeout(() => firstInput.focus(), 100);
+            }
+        } else {
+            console.error('Modal not found:', modalId);
         }
     }
 
     static hideModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
+            console.log('Hiding modal:', modalId);
             modal.classList.remove('show');
+            modal.style.display = 'none';
         }
     }
 

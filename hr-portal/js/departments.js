@@ -284,8 +284,16 @@ class DepartmentsController {
     }
 
     showCreateDepartmentModal() {
+        console.log('showCreateDepartmentModal called');
+        
+        // Check if modal element exists
+        const modal = document.getElementById('create-department-modal');
+        console.log('Modal element found:', !!modal);
+        
         this.populateManagerDropdowns();
         Utils.showModal('create-department-modal');
+        
+        console.log('Modal should now be visible');
     }
 
     showAssignManagerModal(departmentId) {
