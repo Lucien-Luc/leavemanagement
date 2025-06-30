@@ -91,7 +91,7 @@ class EmployeesController {
                         <option value="recent">Recently Added</option>
                     </select>
                 </div>
-                <button class="btn btn-primary" onclick="employeesController.showAddEmployeeModal()">
+                <button class="btn btn-primary" onclick="window.employeesController.showAddEmployeeModal()">
                     <i class="fas fa-plus"></i> Add Employee
                 </button>
             </div>
@@ -416,11 +416,19 @@ class EmployeesController {
     }
 
     showAddEmployeeModal() {
+        console.log('showAddEmployeeModal called');
+        
+        // Check if modal exists
+        const modal = document.getElementById('add-employee-modal');
+        console.log('Add employee modal found:', !!modal);
+        
         Utils.showModal('add-employee-modal');
+        
         // Reset role selection to show manager field by default
         setTimeout(() => {
             const roleSelect = document.getElementById('hr-role-select');
             const managerGroup = document.getElementById('manager-selection-group');
+            console.log('Role select found:', !!roleSelect, 'Manager group found:', !!managerGroup);
             if (roleSelect && managerGroup) {
                 roleSelect.value = 'employee';
                 managerGroup.style.display = 'block';
@@ -430,9 +438,12 @@ class EmployeesController {
 
     async handleAddEmployee(e) {
         e.preventDefault();
+        console.log('handleAddEmployee called');
         
         const formData = new FormData(e.target);
         const submitBtn = e.target.querySelector('button[type="submit"]');
+        
+        console.log('Form data collected:', Object.fromEntries(formData));
         
         try {
             const originalText = Utils.showLoading(submitBtn);
