@@ -98,6 +98,7 @@
                 console.log('App not ready, waiting...');
                 setTimeout(() => window.handleLoginSubmit(event), 500);
             }
+            return false;
         };
         
         window.handleRegisterSubmit = function(event) {
@@ -110,6 +111,7 @@
                 console.log('App not ready, waiting...');
                 setTimeout(() => window.handleRegisterSubmit(event), 500);
             }
+            return false;
         };
         
         window.handleRegisterClick = function(event) {
