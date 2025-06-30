@@ -233,7 +233,7 @@ class EmployeesController {
                         <button class="modal-close">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <form id="add-employee-form">
+                        <form id="add-employee-form" action="#" onsubmit="return false;">
                             <div class="form-group">
                                 <label class="form-label">First Name</label>
                                 <input type="text" class="form-control" name="firstName" required>
@@ -424,14 +424,29 @@ class EmployeesController {
         
         Utils.showModal('add-employee-modal');
         
-        // Reset role selection to show manager field by default
+        // Reset role selection and setup event listeners
         setTimeout(() => {
             const roleSelect = document.getElementById('hr-role-select');
             const managerGroup = document.getElementById('manager-selection-group');
             console.log('Role select found:', !!roleSelect, 'Manager group found:', !!managerGroup);
+            
             if (roleSelect && managerGroup) {
                 roleSelect.value = 'employee';
                 managerGroup.style.display = 'block';
+            }
+            
+            // Setup form event handler
+            const addForm = document.getElementById('add-employee-form');
+            if (addForm) {
+                console.log('Setting up form event handler');
+                // Remove any existing listeners first
+                addForm.removeEventListener('submit', this.handleAddEmployee);
+                addForm.addEventListener('submit', (e) => {
+                    console.log('Form submit event triggered');
+                    this.handleAddEmployee(e);
+                });
+            } else {
+                console.error('Add employee form not found');
             }
         }, 100);
     }
