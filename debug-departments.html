@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Departments Controller</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+</head>
+<body>
+    <h1>Debug Departments Controller</h1>
+    <button onclick="testController()">Test Department Controller</button>
+    <button onclick="testModal()">Test Modal Function</button>
+    <div id="results"></div>
+
+    <script>
+        function testController() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h3>Testing Controller:</h3>';
+            
+            // Check if window.departmentsController exists
+            if (window.departmentsController) {
+                results.innerHTML += '<p>✓ window.departmentsController exists</p>';
+                
+                // Check if showCreateDepartmentModal method exists
+                if (typeof window.departmentsController.showCreateDepartmentModal === 'function') {
+                    results.innerHTML += '<p>✓ showCreateDepartmentModal method exists</p>';
+                } else {
+                    results.innerHTML += '<p>✗ showCreateDepartmentModal method NOT found</p>';
+                }
+                
+                // List all methods
+                const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(window.departmentsController));
+                results.innerHTML += '<p>Available methods: ' + methods.join(', ') + '</p>';
+                
+            } else {
+                results.innerHTML += '<p>✗ window.departmentsController NOT found</p>';
+            }
+        }
+        
+        function testModal() {
+            const results = document.getElementById('results');
+            try {
+                if (window.departmentsController && window.departmentsController.showCreateDepartmentModal) {
+                    window.departmentsController.showCreateDepartmentModal();
+                    results.innerHTML += '<p>✓ Modal function called successfully</p>';
+                } else {
+                    results.innerHTML += '<p>✗ Cannot call modal function</p>';
+                }
+            } catch (error) {
+                results.innerHTML += '<p>✗ Error calling modal: ' + error.message + '</p>';
+            }
+        }
+        
+        // Auto-test when page loads
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testController();
+            }, 2000);
+        });
+    </script>
+    
+    <!-- Load the departments controller -->
+    <script src="hr-portal/js/utils.js"></script>
+    <script src="hr-portal/js/departments.js"></script>
+</body>
+</html>
