@@ -221,3 +221,7 @@ The application uses the following Firestore collections designed for easy HR in
 - June 30, 2025: Fixed employee creation form submission issues in HR Portal
 - June 30, 2025: Fixed user registration form submission in main employee portal
 - June 30, 2025: Enhanced form validation and error handling for better user experience
+- June 30, 2025: Fixed leave approval workflow - managers now see leave requests assigned to them via managerId
+- June 30, 2025: Updated manager portal to filter leave requests by managerId instead of department
+- June 30, 2025: Enhanced HR portal to properly handle manager_approved status for final confirmation
+- June 30, 2025: Implemented complete three-stage approval workflow: Employee → Manager → HR

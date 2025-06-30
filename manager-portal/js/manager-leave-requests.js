@@ -20,20 +20,27 @@ class ManagerLeaveRequestsController {
 
     async loadLeaveRequests() {
         const manager = managerAuthService.getCurrentManager();
-        if (!manager || !manager.department) {
-            throw new Error('Manager department not found');
+        if (!manager) {
+            throw new Error('Manager not found');
         }
 
         try {
+            // Load requests where this manager is the assigned manager
             const requestsSnapshot = await db.collection('leave_requests')
-                .where('department', '==', manager.department)
+                .where('managerId', '==', manager.id)
                 .orderBy('createdAt', 'desc')
                 .get();
 
-            this.leaveRequests = requestsSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            this.leaveRequests = requestsSnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
+                    endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
+                };
+            });
         } catch (error) {
             console.error('Error loading leave requests:', error);
             this.leaveRequests = [];

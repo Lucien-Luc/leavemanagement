@@ -56,8 +56,9 @@ class LeaveRequestsController {
                     <input type="text" id="request-search" class="form-control" placeholder="Search by employee name or email..." value="${this.searchTerm}" style="width: 300px;">
                     <select id="request-filter" class="form-select" style="width: 200px;">
                         <option value="all">All Requests</option>
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
+                        <option value="pending">Pending Manager Review</option>
+                        <option value="manager_approved">Manager Approved</option>
+                        <option value="approved">HR Confirmed</option>
                         <option value="rejected">Rejected</option>
                         <option value="today">Today's Requests</option>
                         <option value="this-week">This Week</option>
@@ -76,7 +77,17 @@ class LeaveRequestsController {
                         </div>
                     </div>
                     <div class="stat-value">${this.leaveRequests.filter(r => r.status === 'pending').length}</div>
-                    <div class="stat-label">Pending Requests</div>
+                    <div class="stat-label">Pending Manager Review</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon info">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">${this.leaveRequests.filter(r => r.status === 'manager_approved').length}</div>
+                    <div class="stat-label">Manager Approved</div>
                 </div>
 
                 <div class="stat-card">
@@ -86,7 +97,7 @@ class LeaveRequestsController {
                         </div>
                     </div>
                     <div class="stat-value">${this.leaveRequests.filter(r => r.status === 'approved').length}</div>
-                    <div class="stat-label">Approved Requests</div>
+                    <div class="stat-label">HR Confirmed</div>
                 </div>
 
                 <div class="stat-card">
@@ -258,6 +269,9 @@ class LeaveRequestsController {
         switch (this.currentFilter) {
             case 'pending':
                 filtered = filtered.filter(req => req.status === 'pending');
+                break;
+            case 'manager_approved':
+                filtered = filtered.filter(req => req.status === 'manager_approved');
                 break;
             case 'approved':
                 filtered = filtered.filter(req => req.status === 'approved');
