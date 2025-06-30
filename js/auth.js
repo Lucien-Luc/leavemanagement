@@ -50,6 +50,7 @@ class AuthService {
 
             // Check if this is HR registration (special case)
             const isHRRegistration = userData.role === 'hr';
+            let managerData = null;
             
             if (!isHRRegistration) {
                 // Validate manager selection for regular employees
@@ -63,7 +64,7 @@ class AuthService {
                     throw new Error('Selected manager not found');
                 }
 
-                const managerData = managerDoc.data();
+                managerData = managerDoc.data();
                 if (managerData.role !== 'manager' || !managerData.isActive) {
                     throw new Error('Selected user is not an active manager');
                 }
