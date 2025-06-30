@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create HR User</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="js/firebase-config.js"></script>
+</head>
+<body>
+    <h1>Creating HR User...</h1>
+    <div id="status"></div>
+
+    <script>
+        async function createHRUser() {
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                // Create HR user data
+                const hrUserData = {
+                    email: 'hr@bpn.com',
+                    password: CryptoJS.SHA256('hr123').toString(), // Password: hr123
+                    firstName: 'HR',
+                    lastName: 'Administrator',
+                    employeeId: 'HR001',
+                    department: 'Human Resources',
+                    position: 'HR Manager',
+                    manager: 'CEO',
+                    role: 'hr', // Important: HR role
+                    startDate: '2024-01-01',
+                    leaveBalances: {
+                        vacation: 25,
+                        sick: 15,
+                        personal: 5,
+                        maternity: 0,
+                        paternity: 0
+                    },
+                    isActive: true,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastLogin: null
+                };
+
+                // Add to Firestore
+                const docRef = await db.collection('users').add(hrUserData);
+                
+                statusDiv.innerHTML = `
+                    <h2>HR User Created Successfully!</h2>
+                    <p><strong>Email:</strong> hr@bpn.com</p>
+                    <p><strong>Password:</strong> hr123</p>
+                    <p><strong>Role:</strong> HR Administrator</p>
+                    <p><strong>Document ID:</strong> ${docRef.id}</p>
+                    <p>You can now login with these credentials to access the HR Portal.</p>
+                `;
+                
+                console.log('HR user created with ID:', docRef.id);
+                
+            } catch (error) {
+                console.error('Error creating HR user:', error);
+                statusDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Wait for Firebase to be ready then create the user
+        window.addEventListener('load', () => {
+            setTimeout(createHRUser, 1000);
+        });
+    </script>
+</body>
+</html>
