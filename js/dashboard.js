@@ -35,9 +35,7 @@ class DashboardController {
             this.leaveRequests = [];
             this.leaveBalances = {};
 
-            // Check and create sample data if needed (for first time users)
-            const sampleDataManager = new SampleDataManager();
-            await sampleDataManager.checkAndCreateSampleData();
+            // Load user data without sample data
 
             // Load leave requests directly from Firestore
             try {

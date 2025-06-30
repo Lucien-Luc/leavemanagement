@@ -225,3 +225,5 @@ The application uses the following Firestore collections designed for easy HR in
 - June 30, 2025: Updated manager portal to filter leave requests by managerId instead of department
 - June 30, 2025: Enhanced HR portal to properly handle manager_approved status for final confirmation
 - June 30, 2025: Implemented complete three-stage approval workflow: Employee → Manager → HR
+- June 30, 2025: Removed all sample data and request templates from the application for clean testing
+- June 30, 2025: Deleted sample-data.js file and removed all references to sample data creation
