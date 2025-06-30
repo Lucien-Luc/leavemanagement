@@ -245,3 +245,13 @@ The application uses the following Firestore collections designed for easy HR in
   * Fixed async/await issues in form validation
   * Enhanced status displays with proper user-friendly text
 - June 30, 2025: Created debug-workflow.html and test-workflow.js for complete system testing
+- June 30, 2025: Migration from Replit Agent to Replit environment completed successfully
+- June 30, 2025: Complete three-stage leave approval workflow implementation:
+  * Stage 1: Employee submits → Status: 'pending' (Manager review)
+  * Stage 2: Manager approves → Status: 'manager_approved' (HR confirmation)
+  * Stage 3: HR confirms → Status: 'approved' (Final approval)
+  * Manager rejections go directly to 'manager_rejected' (final status)
+  * Enhanced status displays with progress bars and user-friendly text
+  * Added new CSS badge classes for workflow statuses
+  * Updated all three portals (Employee, Manager, HR) for new workflow
+  * Added rejection reason capturing for both managers and HR

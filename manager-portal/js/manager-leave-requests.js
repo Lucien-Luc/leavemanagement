@@ -25,54 +25,25 @@ class ManagerLeaveRequestsController {
         }
 
         try {
-            // Load ALL requests first, then filter by manager
+            // Load requests that need manager action (pending) or have been acted upon by this manager
             const requestsSnapshot = await db.collection('leave_requests')
+                .where('managerId', '==', manager.id)
                 .orderBy('createdAt', 'desc')
                 .get();
 
-            // Filter requests for this manager and map data
-            this.leaveRequests = requestsSnapshot.docs
-                .map(doc => {
-                    const data = doc.data();
-                    return {
-                        id: doc.id,
-                        ...data,
-                        startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
-                        endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
-                        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
-                    };
-                })
-                .filter(request => {
-                    console.log('Checking request:', {
-                        requestId: request.id,
-                        requestManagerId: request.managerId,
-                        requestDepartment: request.department,
-                        requestUserEmail: request.userEmail,
-                        managerInfo: {
-                            id: manager.id,
-                            employeeId: manager.employeeId,
-                            department: manager.department,
-                            email: manager.email
-                        }
-                    });
-                    
-                    // Multiple ways to match requests to this manager
-                    const isManagerMatch = 
-                        request.managerId === manager.id || 
-                        request.managerId === manager.employeeId ||
-                        request.department === manager.department ||
-                        (request.userEmail && manager.department && 
-                         request.userEmail.toLowerCase().includes(manager.department.toLowerCase())) ||
-                        // Also check if the user's manager field matches any identifier of this manager
-                        (request.userId && request.managerId && 
-                         (request.managerId === manager.id || request.managerId === manager.employeeId));
-                    
-                    if (isManagerMatch) {
-                        console.log('✓ Request matches manager:', request.id);
-                    }
-                    
-                    return isManagerMatch;
-                });
+            this.leaveRequests = requestsSnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
+                    endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+                    managerActionAt: data.managerActionAt?.toDate ? data.managerActionAt.toDate() : null
+                };
+            });
+
+            console.log(`Manager ${manager.id} loaded ${this.leaveRequests.length} requests`);
         } catch (error) {
             console.error('Error loading leave requests:', error);
             this.leaveRequests = [];
@@ -348,19 +319,21 @@ class ManagerLeaveRequestsController {
             const manager = managerAuthService.getCurrentManager();
             
             await db.collection('leave_requests').doc(requestId).update({
-                status: 'manager_approved',
-                approvedBy: `${manager.firstName} ${manager.lastName}`,
-                approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                managerApproval: {
+                status: 'manager_approved', // Stage 2: Now goes to HR for confirmation
+                managerDecision: {
                     managerId: manager.id,
                     managerName: `${manager.firstName} ${manager.lastName}`,
                     approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    comments: 'Approved by manager'
+                    decision: 'approved'
+                },
+                workflow: {
+                    stage: 2, // 2=HR Confirmation stage
+                    stageDescription: 'Pending HR Confirmation'
                 },
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            Utils.showToast('Leave request approved successfully', 'success');
+            Utils.showToast('Leave request approved and sent to HR for confirmation', 'success');
             await this.init(); // Reload data
         } catch (error) {
             console.error('Error approving request:', error);
@@ -370,23 +343,28 @@ class ManagerLeaveRequestsController {
 
     async rejectRequest(requestId) {
         const reason = prompt('Please provide a reason for rejection:');
-        if (!reason) return;
+        if (!reason || reason.trim() === '') return;
 
         try {
             const manager = managerAuthService.getCurrentManager();
             
             await db.collection('leave_requests').doc(requestId).update({
-                status: 'rejected',
-                managerApproval: {
+                status: 'manager_rejected', // Direct final rejection by manager
+                managerReason: reason.trim(),
+                managerDecision: {
                     managerId: manager.id,
                     managerName: `${manager.firstName} ${manager.lastName}`,
                     rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    comments: reason
+                    reason: reason.trim()
+                },
+                workflow: {
+                    stage: 3, // Completed - rejected by manager
+                    stageDescription: 'Rejected by Manager'
                 },
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            Utils.showToast('Leave request rejected', 'success');
+            Utils.showToast('Leave request rejected successfully', 'success');
             await this.init(); // Reload data
         } catch (error) {
             console.error('Error rejecting request:', error);

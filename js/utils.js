@@ -213,6 +213,45 @@ class Utils {
     static deepClone(obj) {
         return JSON.parse(JSON.stringify(obj));
     }
+
+    // Get user-friendly status text for three-stage workflow
+    static getWorkflowStatusText(status) {
+        const statusMap = {
+            'pending': 'Pending Manager Review',
+            'manager_approved': 'Pending HR Confirmation',
+            'manager_rejected': 'Rejected by Manager',
+            'approved': 'Approved & Confirmed',
+            'rejected': 'Rejected',
+            'cancelled': 'Cancelled'
+        };
+        return statusMap[status] || this.capitalize(status);
+    }
+
+    // Get status badge class for three-stage workflow
+    static getWorkflowStatusBadge(status) {
+        const badgeMap = {
+            'pending': 'badge-warning',
+            'manager_approved': 'badge-info',
+            'manager_rejected': 'badge-danger',
+            'approved': 'badge-success',
+            'rejected': 'badge-danger',
+            'cancelled': 'badge-secondary'
+        };
+        return badgeMap[status] || 'badge-secondary';
+    }
+
+    // Get workflow progress percentage
+    static getWorkflowProgress(status) {
+        const progressMap = {
+            'pending': 25,
+            'manager_approved': 75,
+            'manager_rejected': 100,
+            'approved': 100,
+            'rejected': 100,
+            'cancelled': 100
+        };
+        return progressMap[status] || 0;
+    }
 }
 
 // Export Utils globally

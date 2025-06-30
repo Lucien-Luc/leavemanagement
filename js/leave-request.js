@@ -378,7 +378,7 @@ class LeaveRequestController {
             reason: reason.trim(),
             days: days,
             totalDays: days,
-            status: 'pending',
+            status: 'pending', // Stage 1: Pending manager approval
             userId: user.id,
             employeeId: user.employeeId || '',
             employeeName: `${user.firstName} ${user.lastName}`,
@@ -386,7 +386,11 @@ class LeaveRequestController {
             employeeEmail: user.email,
             userEmail: user.email,
             department: user.department || '',
-            managerId: managerId,
+            managerId: managerId, // Critical for manager assignment
+            workflow: {
+                stage: 1, // 1=Manager Review, 2=HR Confirmation, 3=Complete
+                stageDescription: 'Pending Manager Approval'
+            },
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
     }

@@ -284,7 +284,12 @@ class DashboardController {
                 <td>${Utils.capitalize(request.leaveType)}</td>
                 <td>${Utils.formatDate(request.startDate)} - ${Utils.formatDate(request.endDate)}</td>
                 <td>${request.days} days</td>
-                <td><span class="badge ${Utils.getStatusBadgeClass(request.status)}">${Utils.capitalize(request.status)}</span></td>
+                <td>
+                    <span class="badge ${Utils.getWorkflowStatusBadge(request.status)}">${Utils.getWorkflowStatusText(request.status)}</span>
+                    <div class="progress-bar-mini" style="width: 100%; height: 4px; background: #f0f0f0; border-radius: 2px; margin-top: 4px;">
+                        <div style="width: ${Utils.getWorkflowProgress(request.status)}%; height: 100%; background: var(--primary); border-radius: 2px;"></div>
+                    </div>
+                </td>
                 <td>
                     ${request.status === 'pending' ? `
                         <button class="btn btn-sm btn-outline" onclick="dashboardController.editRequest('${request.id}')">
@@ -292,6 +297,11 @@ class DashboardController {
                         </button>
                         <button class="btn btn-sm btn-danger" onclick="dashboardController.cancelRequest('${request.id}')">
                             <i class="fas fa-times"></i>
+                        </button>
+                    ` : ''}
+                    ${request.status === 'manager_rejected' && request.managerReason ? `
+                        <button class="btn btn-sm btn-info" onclick="alert('Manager Reason: ${request.managerReason}')" title="View rejection reason">
+                            <i class="fas fa-info-circle"></i>
                         </button>
                     ` : ''}
                 </td>

@@ -566,6 +566,31 @@ body {
     color: #721C24;
 }
 
+.badge-warning {
+    background: #FFF3CD;
+    color: #856404;
+}
+
+.badge-info {
+    background: #D1ECF1;
+    color: #0C5460;
+}
+
+.badge-success {
+    background: #D4EDDA;
+    color: #155724;
+}
+
+.badge-danger {
+    background: #F8D7DA;
+    color: #721C24;
+}
+
+.badge-secondary {
+    background: #E2E3E5;
+    color: #383D41;
+}
+
 /* Calendar */
 .calendar-header {
     display: flex;

@@ -36,16 +36,22 @@ class ManagerDashboardController {
         try {
             const manager = managerAuthService.getCurrentManager();
             const requestsSnapshot = await db.collection('leave_requests')
-                .where('department', '==', manager.department)
+                .where('managerId', '==', manager.id)
                 .where('status', '==', 'pending')
                 .orderBy('createdAt', 'desc')
                 .limit(10)
                 .get();
 
-            this.pendingRequests = requestsSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            this.pendingRequests = requestsSnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
+                    endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
+                };
+            });
         } catch (error) {
             console.error('Error loading pending requests:', error);
             this.pendingRequests = [];
@@ -214,16 +220,20 @@ class ManagerDashboardController {
             
             await db.collection('leave_requests').doc(requestId).update({
                 status: 'manager_approved',
-                managerApproval: {
+                managerDecision: {
                     managerId: manager.id,
                     managerName: `${manager.firstName} ${manager.lastName}`,
                     approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    comments: 'Approved by manager'
+                    decision: 'approved'
+                },
+                workflow: {
+                    stage: 2,
+                    stageDescription: 'Pending HR Confirmation'
                 },
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            Utils.showToast('Leave request approved successfully', 'success');
+            Utils.showToast('Leave request approved and sent to HR for confirmation', 'success');
             await this.init(); // Reload data
         } catch (error) {
             console.error('Error approving request:', error);
@@ -233,23 +243,28 @@ class ManagerDashboardController {
 
     async rejectRequest(requestId) {
         const reason = prompt('Please provide a reason for rejection:');
-        if (!reason) return;
+        if (!reason || reason.trim() === '') return;
 
         try {
             const manager = managerAuthService.getCurrentManager();
             
             await db.collection('leave_requests').doc(requestId).update({
-                status: 'rejected',
-                managerApproval: {
+                status: 'manager_rejected',
+                managerReason: reason.trim(),
+                managerDecision: {
                     managerId: manager.id,
                     managerName: `${manager.firstName} ${manager.lastName}`,
                     rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    comments: reason
+                    reason: reason.trim()
+                },
+                workflow: {
+                    stage: 3,
+                    stageDescription: 'Rejected by Manager'
                 },
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            Utils.showToast('Leave request rejected', 'success');
+            Utils.showToast('Leave request rejected successfully', 'success');
             await this.init(); // Reload data
         } catch (error) {
             console.error('Error rejecting request:', error);

@@ -21,9 +21,9 @@ class LeaveRequestsController {
 
     async loadLeaveRequests() {
         try {
-            // HR sees manager-approved requests and final approved requests
+            // HR sees all requests that have been acted upon by managers
             const snapshot = await db.collection('leave_requests')
-                .where('status', 'in', ['manager_approved', 'approved'])
+                .where('status', 'in', ['manager_approved', 'manager_rejected', 'approved'])
                 .orderBy('createdAt', 'desc')
                 .get();
 
@@ -35,15 +35,13 @@ class LeaveRequestsController {
                     startDate: data.startDate?.toDate(),
                     endDate: data.endDate?.toDate(),
                     createdAt: data.createdAt?.toDate(),
-                    approvedAt: data.approvedAt?.toDate(),
-                    rejectedAt: data.rejectedAt?.toDate()
+                    managerActionAt: data.managerDecision?.approvedAt?.toDate() || data.managerDecision?.rejectedAt?.toDate(),
+                    hrActionAt: data.hrConfirmation?.confirmedAt?.toDate()
                 };
-            }).filter(request => {
-                // Only show requests that have proper manager approval
-                return request.managerApproval && request.managerApproval.managerId;
             });
             
             this.applyFilters();
+            console.log(`HR loaded ${this.leaveRequests.length} requests needing review/oversight`);
         } catch (error) {
             console.error('Error loading leave requests:', error);
             this.leaveRequests = [];
@@ -369,25 +367,61 @@ class LeaveRequestsController {
     }
 
     async confirmRequest(requestId) {
+        const hrNote = prompt('Optional HR confirmation note:') || 'Confirmed by HR';
+
         try {
             const currentUser = authService.getCurrentUser();
             await db.collection('leave_requests').doc(requestId).update({
-                status: 'approved',
-                hrApproval: {
+                status: 'approved', // Final approved status
+                hrConfirmation: {
                     hrId: currentUser.id,
                     hrName: `${currentUser.firstName} ${currentUser.lastName}`,
                     confirmedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    comments: 'Confirmed by HR'
+                    note: hrNote.trim()
+                },
+                workflow: {
+                    stage: 3, // 3=Complete/Final
+                    stageDescription: 'Approved & Confirmed'
                 },
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            Utils.showToast('Leave request confirmed successfully', 'success');
+            Utils.showToast('Leave request confirmed and finalized successfully', 'success');
             await this.loadLeaveRequests();
             this.renderLeaveRequestsPage();
         } catch (error) {
             console.error('Error confirming request:', error);
             Utils.showToast('Failed to confirm request', 'error');
+        }
+    }
+
+    async rejectRequest(requestId) {
+        const hrNote = prompt('HR rejection note (required):');
+        if (!hrNote || hrNote.trim() === '') return;
+
+        try {
+            const currentUser = authService.getCurrentUser();
+            await db.collection('leave_requests').doc(requestId).update({
+                status: 'rejected', // Final rejected status
+                hrRejection: {
+                    hrId: currentUser.id,
+                    hrName: `${currentUser.firstName} ${currentUser.lastName}`,
+                    rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    note: hrNote.trim()
+                },
+                workflow: {
+                    stage: 3, // 3=Complete/Final
+                    stageDescription: 'Rejected by HR'
+                },
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            Utils.showToast('Leave request rejected successfully', 'success');
+            await this.loadLeaveRequests();
+            this.renderLeaveRequestsPage();
+        } catch (error) {
+            console.error('Error rejecting request:', error);
+            Utils.showToast('Failed to reject request', 'error');
         }
     }
 
